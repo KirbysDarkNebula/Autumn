@@ -104,7 +104,7 @@ internal class Scene
             var ey = cameraEye * 100;
             l2 = Translucent.OrderBy(x => Vector3.Distance(x.StageObj.Translation, ey)).ToList();
             l2.Reverse();
-            foreach (ISceneObj o in l2)
+            foreach (ISceneObj o in Translucent)
             {
                 ModelRenderer.DrawLayer(gl, o, this, H3DMeshLayer.Translucent);
             }
