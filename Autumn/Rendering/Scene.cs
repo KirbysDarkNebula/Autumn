@@ -25,6 +25,7 @@ internal class Scene
 
     private readonly List<ISceneObj> _selectedObjects = new();
     public IEnumerable<ISceneObj> SelectedObjects => _selectedObjects;
+    public int SelectedObjCount => _selectedObjects.Count;
 
     public ISceneObj? HoveringObject { get; private set; }
 
@@ -56,6 +57,12 @@ internal class Scene
     private Dictionary<StageFog, List<ISceneObj>> _stageFogList = new();
     private Dictionary<StageFog, int> _stageFogCount = new();
 
+
+    List<ISceneObj> Opaque = new();
+    List<ActorSceneObj> Translucent = new();
+    List<ActorSceneObj> Subtractive = new();
+    List<ActorSceneObj> Additive = new();
+
     public Scene(Stage stage, LayeredFSHandler fsHandler, GLTaskScheduler scheduler, ref string status)
     {
         Stage = stage;
@@ -68,8 +75,53 @@ internal class Scene
     {
         ModelRenderer.UpdateSceneParams(view, projection, cameraRot, cameraEye);
 
-        foreach (ISceneObj obj in EnumerateSceneObjs())
-            ModelRenderer.Draw(gl, obj, this);
+        if (ModelRenderer.UseFullAlphaPipeline)
+        {
+            // foreach (ISceneObj obj in EnumerateSceneObjs())
+            // {
+            //     // Skip object to opaque pass
+            //     if (obj is BasicSceneObj || obj is RailSceneObj || (obj is ActorSceneObj && (obj as ActorSceneObj)!.Actor.IsEmptyModel))
+            //     {
+            //         Opaque.Add(obj);
+            //     }
+            //     else if (obj is ActorSceneObj actorS)
+            //     {
+            //         Actor actor = actorS.Actor;
+            //         if (actor.CountMeshesLayer(H3DMeshLayer.Opaque) > 0) Opaque.Add(obj);
+            //         if (actor.CountMeshesLayer(H3DMeshLayer.Translucent) > 0) Translucent.Add((obj as ActorSceneObj)!);
+            //         if (actor.CountMeshesLayer(H3DMeshLayer.Subtractive) > 0) { Subtractive.Add((obj as ActorSceneObj)!); Translucent.Add((obj as ActorSceneObj)!); }
+            //         if (actor.CountMeshesLayer(H3DMeshLayer.Additive) > 0) { Additive.Add((obj as ActorSceneObj)!); Translucent.Add((obj as ActorSceneObj)!); }
+            //     }
+            // }
+            foreach (ISceneObj o in Opaque)
+            {
+                ModelRenderer.DrawLayer(gl, o, this, H3DMeshLayer.Opaque);
+            }
+
+            // Preemptively sort by distance
+            List<ActorSceneObj> l2 = new();
+            float dist = 0;
+            var ey = cameraEye * 100;
+            l2 = Translucent.OrderBy(x => Vector3.Distance(x.StageObj.Translation, ey)).ToList();
+            l2.Reverse();
+            foreach (ISceneObj o in l2)
+            {
+                ModelRenderer.DrawLayer(gl, o, this, H3DMeshLayer.Translucent);
+            }
+            foreach (ISceneObj o in Subtractive)
+            {
+                ModelRenderer.DrawLayer(gl, o, this, H3DMeshLayer.Subtractive);
+            }
+            foreach (ISceneObj o in Additive)
+            {
+                ModelRenderer.DrawLayer(gl, o, this, H3DMeshLayer.Additive);
+            }
+        }
+        else
+        {
+            foreach (ISceneObj obj in EnumerateSceneObjs())
+                ModelRenderer.Draw(gl, obj, this);
+        }
     }
 
     #region Object selection
@@ -563,6 +615,7 @@ internal class Scene
             CommonMaterialParameters matParams = new(color, new());
 
             BasicSceneObj areaSceneObj = new(stageObj, matParams, 20f, _lastPickingId);
+            Opaque.Add(areaSceneObj);
             AddSwitchFromStageObj(stageObj, areaSceneObj);
             _stageSceneObjs.Add(areaSceneObj);
             _pickableObjs.Add(_lastPickingId++, areaSceneObj);
@@ -574,6 +627,7 @@ internal class Scene
         {
             RailModel model = new(rail);
             RailSceneObj railSceneObj = new(rail, model, ref _lastPickingId);
+            Opaque.Add(railSceneObj);
 
             scheduler.EnqueueGLTask(model.Initialize);
 
@@ -605,10 +659,24 @@ internal class Scene
             actor = fsHandler.ReadActor(actorName, fallback, scheduler);
 
         ActorSceneObj actorSceneObj = new(stageObj, actor, _lastPickingId);
+        scheduler.EnqueueGLTask( gl => 
+            {
+                if (actor.IsEmptyModel) Opaque.Add(actorSceneObj);
+                else
+                {
+                    if (actor.CountMeshesLayer(H3DMeshLayer.Opaque) > 0) Opaque.Add(actorSceneObj);
+                    if (actor.CountMeshesLayer(H3DMeshLayer.Translucent) > 0) Translucent.Add(actorSceneObj);
+                    if (actor.CountMeshesLayer(H3DMeshLayer.Subtractive) > 0) { Subtractive.Add(actorSceneObj);}    // Translucent.Add(actorSceneObj); }
+                    if (actor.CountMeshesLayer(H3DMeshLayer.Additive) > 0) { Additive.Add(actorSceneObj);}          // Translucent.Add(actorSceneObj); }
+                }
+            }
+        );
+
         AddSwitchFromStageObj(stageObj, actorSceneObj);
 
         _stageSceneObjs.Add(actorSceneObj);
         _pickableObjs.Add(_lastPickingId++, actorSceneObj);
+        actorSceneObj.UpdateTransform();
     }
 
     #region Point Editing
@@ -752,6 +820,14 @@ internal class Scene
                 _railObjs.Remove(y);
                 break;
         }
+
+        if (Opaque.Contains(sceneObj)) Opaque.Remove(sceneObj);
+        if (sceneObj is ActorSceneObj)
+        {
+            if (Translucent.Contains(sceneObj)) Translucent.Remove((sceneObj as ActorSceneObj)!);
+            if (Additive.Contains(sceneObj)) Additive.Remove((sceneObj as ActorSceneObj)!);
+            if (Subtractive.Contains(sceneObj)) Subtractive.Remove((sceneObj as ActorSceneObj)!);
+        }  
 
         _pickableObjs.Remove(sceneObj.PickingId);
     }

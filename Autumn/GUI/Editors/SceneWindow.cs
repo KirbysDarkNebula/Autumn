@@ -116,7 +116,7 @@ internal class SceneWindow(MainWindowContext window)
         else if (IsRotationActive)
             ActTransform.FullTransformString = "Rotating ";
 
-        if (window.CurrentScene!.SelectedObjects.Count() > 1)
+        if (window.CurrentScene!.SelectedObjCount > 1)
             ActTransform.FullTransformString += "multiple objects";
         else
         {
@@ -311,10 +311,10 @@ internal class SceneWindow(MainWindowContext window)
             }
         }
 
-            // if ((window.Keyboard?.IsKeyP ressed(Key.Space) ?? false) && window.CurrentScene.SelectedObjects.Count() > 0){
+            // if ((window.Keyboard?.IsKeyP ressed(Key.Space) ?? false) && window.CurrentScene.SelectedObjCount > 0){
             //     camera.LookAt(camera.Eye, window.CurrentScene.SelectedObjects.First().StageObj.Translation*0.01f);
             // }
-        if (window.CurrentScene.SelectedObjects.Any() || CamToObj)
+        if (window.CurrentScene.SelectedObjCount > 0 || CamToObj)
         {
             CamToObj = CamToObj ? CamToObj : (window.Keyboard?.IsKeyPressed(Key.Space) ?? false);
             if (!ImGui.GetIO().WantTextInput)
@@ -474,7 +474,7 @@ internal class SceneWindow(MainWindowContext window)
         bool ScaleGizmoHovered = false;
         HoveredAxis TransformGizmoAxis = HoveredAxis.NONE;
 
-        if (window.CurrentScene!.SelectedObjects.Any() && window.ContextHandler.SystemSettings.LastGizmo != 0)
+        if (window.CurrentScene!.SelectedObjCount > 0 && window.ContextHandler.SystemSettings.LastGizmo != 0)
         {
             // Method one: Gizmo is placed in the middle position of the selected objects
             if (window.ContextHandler.SystemSettings.GizmoPosition == GizmoPosition.Middle)
@@ -720,9 +720,9 @@ internal class SceneWindow(MainWindowContext window)
                 if (window.CurrentScene.TryGetPickableObj(pixel, out _pickObject) && _pickObject != null && (_pickObject is IStageSceneObj || _pickObject is RailSceneObj))
                 {
                     _objectOptionsPos = windowMousePos;
-                    bool select1 = window.CurrentScene.SelectedObjects.Count() == 1;
+                    bool select1 = window.CurrentScene.SelectedObjCount == 1;
 
-                    bool selectover1 = window.CurrentScene.SelectedObjects.Count() > 0;
+                    bool selectover1 = window.CurrentScene.SelectedObjCount > 0;
 
                     _selNotSame = selectover1 ? !window.CurrentScene.SelectedObjects.Contains(_pickObject) : true;
 
@@ -755,7 +755,7 @@ internal class SceneWindow(MainWindowContext window)
                 else
                     _isObjectOptionsEnabled = false;
             }
-            else if ((_isSceneHovered && window.CurrentScene.SelectedObjects.Any()) || IsTranslationActive || IsScaleActive || IsRotationActive)
+            else if ((_isSceneHovered && window.CurrentScene.SelectedObjCount > 0) || IsTranslationActive || IsScaleActive || IsRotationActive)
             {
                 Vector3 _ndcMousePos3D =
                     new(ndcMousePos.X * sceneImageSize.X / 2,
@@ -942,7 +942,7 @@ internal class SceneWindow(MainWindowContext window)
         //ImGui.PushFont(window.FontPointers[1]);
         ImGui.PushStyleVar(ImGuiStyleVar.FrameRounding, 0f);
         ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(1, default));
-        float buttons = ImGui.CalcTextSize(IconUtils.GRID).X*5 + 5*10;
+        float buttons = ImGui.CalcTextSize(IconUtils.GRID).X*5 + 5*11 +12;
         ImGui.SetCursorPos(new Vector2(contentAvail.X - buttons, opos.Y - 3f));
 
         if (ImGui.Button(IconUtils.GRID))
@@ -979,6 +979,11 @@ internal class SceneWindow(MainWindowContext window)
         ImGui.SetItemTooltip($"CameraArea visibility {(ModelRenderer.VisibleCameraAreas ? "ON" : "OFF")}");
         ImGui.SameLine();
 
+        if (ImGui.Button("A"))
+        {
+            ModelRenderer.UseFullAlphaPipeline = !ModelRenderer.UseFullAlphaPipeline;
+        }
+        ImGui.SetItemTooltip($"Pipeline {(ModelRenderer.UseFullAlphaPipeline ? "ON": "OFF")}");
 
         ImGui.PopStyleVar(2);
         //ImGui.PopFont();
@@ -1205,7 +1210,7 @@ internal class SceneWindow(MainWindowContext window)
             _axisLock = Vector3.One;
 
             // Add to Undo stack
-            if (window.CurrentScene!.SelectedObjects.Count() == 1)
+            if (window.CurrentScene!.SelectedObjCount == 1)
             {
                 var sobj = window.CurrentScene.SelectedObjects.First();
                 switch (sobj)
@@ -1511,7 +1516,7 @@ internal class SceneWindow(MainWindowContext window)
             FinishTransform = false;
             _axisLock = Vector3.One;
 
-            if (window.CurrentScene!.SelectedObjects.Count() == 1)
+            if (window.CurrentScene!.SelectedObjCount == 1)
             {
                 var sobj = window.CurrentScene.SelectedObjects.First();
                 switch (sobj)
@@ -1827,7 +1832,7 @@ internal class SceneWindow(MainWindowContext window)
             FinishTransform = false;
             _axisLock = Vector3.One;
 
-            if (window.CurrentScene!.SelectedObjects.Count() == 1)
+            if (window.CurrentScene!.SelectedObjCount == 1)
             {
                 var sobj = window.CurrentScene.SelectedObjects.First();
                 switch (sobj)

@@ -75,7 +75,7 @@ internal class PropertiesWindow(MainWindowContext window)
         var scn = window.CurrentScene;
 
         IEnumerable<ISceneObj> selectedObjects = scn.SelectedObjects;
-        int selectedCount = selectedObjects.Count();
+        int selectedCount = scn.SelectedObjCount;
 
         if (selectedCount < 2 &&
         (multiselector.Layer != mLayer

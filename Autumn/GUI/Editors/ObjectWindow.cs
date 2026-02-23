@@ -161,7 +161,7 @@ internal class ObjectWindow(MainWindowContext window)
                 ImGui.SetItemTooltip(name);
 
                 if (
-                    window.CurrentScene.SelectedObjects.Count() <= 1
+                    window.CurrentScene.SelectedObjCount <= 1
                     && !lastKeyPressed
                     && selectedIndex != (int)obj.PickingId
                     && obj.Selected

@@ -21,14 +21,14 @@ internal static class ChangeHandler
         bool isSelected = context.CurrentScene.IsObjectSelected(id);
 
         // If the only selected object is the one that has been clicked, then nothing is done.
-        if (context.CurrentScene.SelectedObjects.Count() == 1 && isSelected && clear)
+        if (context.CurrentScene.SelectedObjCount == 1 && isSelected && clear)
             return;
 
         if (clear)
         {
             cleared = context.CurrentScene.SelectedObjects.ToArray();
 
-            if (context.CurrentScene.SelectedObjects.Count() > 1 && isSelected) // prevent it getting unselected when clicking on 1 of the multiselected
+            if (context.CurrentScene.SelectedObjCount > 1 && isSelected) // prevent it getting unselected when clicking on 1 of the multiselected
                 isSelected = false;
         }
         // if (context.CurrentScene.TryGetPickableObj(id, out ISceneObj? sceneObj))

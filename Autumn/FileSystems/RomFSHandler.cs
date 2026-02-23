@@ -145,7 +145,7 @@ internal partial class RomFSHandler
     {
 
         Stage stage = new(initialize: false) { Name = name, Scenario = scenario };
-        stage.UserPath = dir+ Path.DirectorySeparatorChar + name + scenario;
+        stage.UserPath = dir + Path.DirectorySeparatorChar + name + scenario;
         (string, StageFileType)[] paths =
         [
             (Path.Join(dir, $"{name}Design{scenario}.szs"), StageFileType.Design),
@@ -466,7 +466,7 @@ internal partial class RomFSHandler
             {
                 var lrt = act_lights.RootNode.GetValueAs<Dictionary<string, BYAMLNode>>();
                 if (lrt!.ContainsKey("LightCalcType"))
-                    actor.InitLight.GetCalcType((string)lrt["LightCalcType"].Value!); 
+                    actor.InitLight.GetCalcType((string)lrt["LightCalcType"].Value!);
                 if (lrt!.ContainsKey("LightType"))
                     actor.InitLight.GetType((string)lrt["LightType"].Value!);
             }
@@ -502,7 +502,7 @@ internal partial class RomFSHandler
             [
                 model.MeshesLayer0, // Opaque layer
                 model.MeshesLayer1, // Translucent layer
-                model.MeshesLayer2, // Substractive layer
+                model.MeshesLayer2, // Subtractive layer
                 model.MeshesLayer3 // Additive layer
             ];
 

@@ -562,11 +562,11 @@ internal class CameraParamsWindow(MainWindowContext window)
     bool CopyVec3Button(bool isCamera)
     {
         bool rb = false;
-        if (!isCamera && window.CurrentScene.SelectedObjects.Count() < 1)
+        if (!isCamera && window.CurrentScene.SelectedObjCount < 1)
             ImGui.BeginDisabled();
         rb = ImGui.Button(isCamera ? IconUtils.CAMERA : IconUtils.USER);
         ImGui.SetItemTooltip(isCamera ? "Copy Camera position" : "Copy selected object position");
-        if (!isCamera && window.CurrentScene.SelectedObjects.Count() < 1)
+        if (!isCamera && window.CurrentScene.SelectedObjCount < 1)
             ImGui.EndDisabled();
         return rb;
     }

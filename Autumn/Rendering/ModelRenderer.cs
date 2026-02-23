@@ -1,3 +1,4 @@
+using System.Collections.Specialized;
 using System.Diagnostics;
 using System.Numerics;
 using Autumn.Enums;
@@ -8,6 +9,7 @@ using Autumn.Rendering.DefaultCube;
 using Autumn.Rendering.Rail;
 using Autumn.Rendering.Storage;
 using Autumn.Storage;
+using Autumn.Wrappers;
 using SceneGL;
 using SceneGL.GLHelpers;
 using SceneGL.Materials.Common;
@@ -20,7 +22,7 @@ namespace Autumn.Rendering;
 
 internal static class ModelRenderer
 {
-    private static readonly Vector3 s_highlightColor = new(1, 1, 0);
+    private static readonly Vector3 s_highlightColor = new(1, 1, 1);
 
     private static CommonSceneParameters? s_commonSceneParams;
     private static CommonMaterialParameters? s_defaultCubeMaterialParams;
@@ -45,6 +47,8 @@ internal static class ModelRenderer
     public static bool VisibleGrid = true;
     public static bool VisibleTransparentWall = true;
     public static bool VisibleRelationLines = true;
+    
+    public static bool UseFullAlphaPipeline = true;
 
     public static void Initialize(GL gl, LayeredFSHandler fsHandler)
     {
@@ -189,10 +193,29 @@ internal static class ModelRenderer
             }
 
             foreach (H3DMeshLayer layer in Enum.GetValues<H3DMeshLayer>())
-            foreach (var (mesh, material) in actor.EnumerateMeshes(layer))
             {
+                List<H3DRenderingMaterial> m = new();
+                List<H3DRenderingMesh> l = new();
+                int c = 0;
+                foreach (var (mesh, material) in actor.EnumerateMeshes(layer))
+                {
+                    if (l.Count > 0 && l.Exists(x => x.Priority <= mesh.Priority))// && mesh.Priority != 0)) 
+                    {
+                        int id = l.FindIndex(x => x.Priority <= mesh.Priority); 
+                        l.Insert(id, mesh); m.Insert(id, material); 
+                    }
+                    else { l.Add(mesh); m.Add(material); }
+                    c+= 1;
+                }
+                l.Reverse();
+                m.Reverse();
+                //
+            for (int h = 0; h < m.Count; h++)
+            {
+                var material = m[h];
+                var mesh = l[h];
+                    material.SetMatrices(s_projectionMatrix, actorSceneObj.Transform, s_viewMatrix);
                 material.SetSelectionColor(new(s_highlightColor, actorSceneObj.Selected ? 0.4f : 0));
-                material.SetMatrices(s_projectionMatrix, actorSceneObj.Transform, s_viewMatrix);
                 if (scn.CanPreviewLights) material.SetLight0((scn.PreviewOneLight ? (scn.PreviewLight ?? scn.GetPreviewLight(actor.InitLight.Type)) : scn.GetPreviewLight(actor.InitLight.Type)) ?? _defaultLight);
                 else material.SetLight0(_defaultLight); 
                 material.SetViewRotation(s_cameraRotation);
@@ -250,6 +273,7 @@ internal static class ModelRenderer
                         gl.PolygonOffset(0, material.PolygonOffsetUnit);
                     }
 
+            }
                     material.Program.TryGetUniformLoc("uPickingId", out int location);
                     gl.Uniform1(location, actorSceneObj.PickingId);
 
