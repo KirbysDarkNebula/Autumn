@@ -76,32 +76,14 @@ internal class Scene
 
         if (ModelRenderer.UseFullAlphaPipeline)
         {
-            // foreach (ISceneObj obj in EnumerateSceneObjs())
-            // {
-            //     // Skip object to opaque pass
-            //     if (obj is BasicSceneObj || obj is RailSceneObj || (obj is ActorSceneObj && (obj as ActorSceneObj)!.Actor.IsEmptyModel))
-            //     {
-            //         Opaque.Add(obj);
-            //     }
-            //     else if (obj is ActorSceneObj actorS)
-            //     {
-            //         Actor actor = actorS.Actor;
-            //         if (actor.CountMeshesLayer(H3DMeshLayer.Opaque) > 0) Opaque.Add(obj);
-            //         if (actor.CountMeshesLayer(H3DMeshLayer.Translucent) > 0) Translucent.Add((obj as ActorSceneObj)!);
-            //         if (actor.CountMeshesLayer(H3DMeshLayer.Subtractive) > 0) { Subtractive.Add((obj as ActorSceneObj)!); Translucent.Add((obj as ActorSceneObj)!); }
-            //         if (actor.CountMeshesLayer(H3DMeshLayer.Additive) > 0) { Additive.Add((obj as ActorSceneObj)!); Translucent.Add((obj as ActorSceneObj)!); }
-            //     }
-            // }
             foreach (ISceneObj o in Opaque)
             {
                 ModelRenderer.DrawLayer(gl, o, this, H3DMeshLayer.Opaque);
             }
 
             // Preemptively sort by distance
-            List<ActorSceneObj> l2 = new();
-            float dist = 0;
             var ey = cameraEye * 100;
-            l2 = Translucent.OrderBy(x => Vector3.Distance(x.StageObj.Translation, ey)).ToList();
+            List<ActorSceneObj> l2 = Translucent.OrderBy(x => Vector3.Distance(x.StageObj.Translation, ey)).ToList();
             l2.Reverse();
             foreach (ISceneObj o in Translucent)
             {
@@ -655,22 +637,8 @@ internal class Scene
 
         Actor actor;
         actor = fsHandler.ReadActorNew(actorName, actorClass, scheduler);
-        // if (actorClass != null && ClassModifiersWrapper.ModifierEntries.ContainsKey(actorClass) && ClassModifiersWrapper.ModifierEntries[actorClass].Variants.ContainsKey(actorName) && ClassModifiersWrapper.ModifierEntries[actorClass].Variants[actorName]!.Value.ModelReplace != null)
-        // {
-        //     actor = fsHandler.ReadActor(ClassModifiersWrapper.ModifierEntries[actorClass].Variants[actorName]!.Value.ModelReplace!, ClassDatabaseWrapper.DatabaseEntries[actorClass].ArchiveName, actorClass, scheduler);
-        // }
-        // else if (actorClass != null && ClassDatabaseWrapper.DatabaseEntries.ContainsKey(actorClass) && ClassDatabaseWrapper.DatabaseEntries[actorClass].ArchiveName != null)
-        // {
-        //     actor = fsHandler.ReadActor(actorName, ClassDatabaseWrapper.DatabaseEntries[actorClass].ArchiveName, actorClass, scheduler);
-        // }
-        // else if (ClassDatabaseWrapper.DatabaseEntries.ContainsKey(actorName) && ClassDatabaseWrapper.DatabaseEntries[actorName].ArchiveName != null)
-        //     actor = fsHandler.ReadActor(actorName, ClassDatabaseWrapper.DatabaseEntries[actorName].ArchiveName, scheduler);
-        // else
-        //     actor = fsHandler.ReadActor(actorName, actorClass, scheduler);
-        
+
         ActorSceneObj actorSceneObj = new(stageObj, actor, _lastPickingId);
-
-
 
         if (actorClass != null && ClassModifiersWrapper.ModifierEntries.ContainsKey(actorClass)) 
         {
