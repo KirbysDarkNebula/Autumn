@@ -540,8 +540,10 @@ internal partial class RomFSHandler
                                 actor.AABB.BoundBox((H3DBoundingBox)mesh.MetaData[m].Values[0]!);
                         }
                     }
+                    //actor.AABB.Center += mesh.MeshCenter;
                 }
             }
+            //actor.AABB.Center /= meshLists.Length;
         }
 
         // Cache the actor
@@ -1435,7 +1437,7 @@ internal partial class RomFSHandler
 
             NARCFileSystem narcFS = new(new());
             byte[] binFile = BYAMLParser.Write(file);
-            SortedDictionary<string, byte[]> files = new(); 
+            SortedDictionary<string, byte[]> files = new();
             foreach (var (key, value) in st.EnumerateAdditionalFiles())
             {
                 files.Add(key, value);
@@ -1444,7 +1446,7 @@ internal partial class RomFSHandler
             {
                 var stageInfoBYML = MakeStageInfo(stage);
                 if (stageInfoBYML != null)
-                    files.Add("StageInfo" + stage.Scenario + ".byml", BYAMLParser.Write((BYAML)stageInfoBYML));                   
+                    files.Add("StageInfo" + stage.Scenario + ".byml", BYAMLParser.Write((BYAML)stageInfoBYML));
                 if (stage.CameraParams.Cameras.Count > 0)
                     files.Add("CameraParam.byml", BYAMLParser.Write(MakeCameraParam(stage)));
             }
