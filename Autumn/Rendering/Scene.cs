@@ -116,6 +116,12 @@ internal class Scene
             {
                 ModelRenderer.DrawLayer(gl, o, this, H3DMeshLayer.Additive);
             }
+            foreach (ISceneObj o in EnumerateSceneObjs())
+            {
+                if (o is not ActorSceneObj) continue;
+                if ((o as ActorSceneObj)!.StageObj.Parent != null) 
+                    ModelRenderer.DrawRelLines(gl, (o as ActorSceneObj)!);
+            }
         }
         else
         {

@@ -291,7 +291,21 @@ internal static class ModelRenderer
         }
     }
 
+    /// <summary>
+    /// Separated from the draw function so it's only drawn once
+    /// </summary>
+    /// <param name="gl"></param>
+    /// <param name="actorSceneObj"></param>
+    public static void DrawRelLines(GL gl, ActorSceneObj actorSceneObj)
+    {
+        if (VisibleRelationLines)
+        {
+            s_relationMaterialParams!.Selected = actorSceneObj.Selected;
 
+            gl.CullFace(TriangleFace.Back);
+            RelationLine.Render(gl, s_commonSceneParams, s_relationParams!, s_relationMaterialParams, actorSceneObj.PickingId, actorSceneObj.StageObj.Translation, actorSceneObj.StageObj.Parent.Translation);
+        }
+    }
 
     public static void DrawLayer(GL gl, ISceneObj sceneObj, Scene scn, H3DMeshLayer layer)
     {
