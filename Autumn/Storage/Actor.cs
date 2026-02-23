@@ -74,6 +74,7 @@ internal class Actor
 
     public void AddTexture(GL gl, H3DTexture texture)
     {
+        if (_textures.ContainsKey(texture.Name)) return;
         byte[] textureData = texture.ToRGBA();
 
         uint glTexture = TextureHelper.CreateTexture2D<byte>(
@@ -176,6 +177,8 @@ internal class Actor
         foreach (var tuple in _meshes[(int)layer])
             yield return tuple;
     }
+
+    public int CountMeshesLayer(H3DMeshLayer l) => _meshes[(int)l].Count;
 
     public void ForceModelNotEmpty() => IsEmptyModel = false;
 }
