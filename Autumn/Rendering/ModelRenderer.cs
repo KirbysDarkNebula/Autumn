@@ -273,7 +273,222 @@ internal static class ModelRenderer
                         gl.PolygonOffset(0, material.PolygonOffsetUnit);
                     }
 
+                    material.Program.TryGetUniformLoc("uPickingId", out int location);
+                    gl.Uniform1(location, actorSceneObj.PickingId);
+//                     if (actor.Name == "Pole") // if the actor modifies the bones
+//                         material.ChangeUnivReg(0, 2, 3, actorSceneObj.StageObj.Scale.Y, gl);
+                    mesh.Draw();
+
+                    gl.Enable(EnableCap.CullFace);
+                    gl.Disable(EnableCap.PolygonOffsetFill);
+                    gl.Disable(EnableCap.Blend);
+                }
             }
+            }
+        }
+    }
+
+
+
+    public static void DrawLayer(GL gl, ISceneObj sceneObj, Scene scn, H3DMeshLayer layer)
+    {
+        if (s_commonSceneParams is null || s_defaultCubeMaterialParams is null)
+            throw new InvalidOperationException(
+                $@"{nameof(ModelRenderer)} must be initialized before any calls to {nameof(Draw)}"
+            );
+            
+        if (!sceneObj.IsVisible)
+            return;
+
+        if (layer == H3DMeshLayer.Opaque)
+        {
+            StageObj? stageObj = null;
+
+            if (sceneObj is IStageSceneObj stageSceneObj) stageObj = stageSceneObj.StageObj;
+
+
+            if (sceneObj is BasicSceneObj basicSceneObj && stageObj!.IsArea())
+            {
+                if (!VisibleAreas && !sceneObj.Selected && stageObj.Type != StageObjType.CameraArea)
+                    return;
+
+                if (!VisibleCameraAreas && !sceneObj.Selected && stageObj.Type == StageObjType.CameraArea)
+                    return;
+
+                s_commonSceneParams.Transform = sceneObj.Transform;
+
+                if (basicSceneObj.Selected)
+                {
+                    basicSceneObj.MaterialParams.HighlightColor = s_highlightColor;
+                    basicSceneObj.MaterialParams.Selected = true;
+                }
+                else if (basicSceneObj.MaterialParams.Selected)
+                {
+                    // We only set it to false if needed, otherwise the buffer will be rewritten always.
+                    basicSceneObj.MaterialParams.Selected = false;
+                }
+
+                gl.CullFace(TriangleFace.Back);
+
+                AreaRenderer.Render(gl, s_commonSceneParams, basicSceneObj.MaterialParams, sceneObj.PickingId);
+                return;
+            }
+
+            if (sceneObj is RailSceneObj railSceneObj)
+            {
+                if(!railSceneObj.RailModel.Initialized)
+                    return;
+                s_railMaterialParams!.Selected = railSceneObj.Selected;
+
+                gl.Disable(EnableCap.CullFace);
+                RailRenderer.Render(gl, railSceneObj, railSceneObj.Selected,
+                    s_commonSceneParams, s_railGeometryParams!, s_railHandleGeoParams!, s_railMaterialParams, s_railPointMaterialParams!);
+                return;
+            }
+            if (sceneObj is ActorSceneObj actorSceneObj1)
+            {
+                Actor actor = actorSceneObj1.Actor;
+                if (actor.IsEmptyModel)
+                {
+                    s_commonSceneParams.Transform = sceneObj.Transform;
+                    s_defaultCubeMaterialParams.Selected = sceneObj.Selected;
+
+                    gl.CullFace(TriangleFace.Back);
+
+                    DefaultCubeRenderer.Render(gl, s_commonSceneParams, s_defaultCubeMaterialParams, sceneObj.PickingId);
+                    return;
+                }
+
+                if (actor.Name == "TransparentWall" && !VisibleTransparentWall)
+                {
+                    return;
+                }
+            }
+        }
+
+        if (sceneObj is ActorSceneObj actorSceneObj)
+        {
+            Actor actor = actorSceneObj.Actor;
+            
+            List<H3DRenderingMaterial> m = new();
+            List<H3DRenderingMesh> l = new();
+            // var d = actor.EnumerateMeshes(layer).ToDictionary();
+            // foreach (var (mesh, material) in actor.EnumerateMeshes(layer))
+            // {
+            //     if (l.Count > 0 && mesh.Priority < l[0].Priority) { l.Insert(0, mesh); m.Insert(0, material); }
+            //     else { l.Add(mesh); m.Add(material); }
+            // }
+            // Console.WriteLine("////////////");
+            int c = 0;
+            List<(H3DRenderingMesh, H3DRenderingMaterial)> dd;
+            if (layer == H3DMeshLayer.Opaque)
+                dd = actor.EnumerateMeshes(layer).ToList();
+            else
+            {
+                dd = actor.EnumerateMeshes(layer).ToList();
+                //dd = actor.MeshesUnlayered.ToList();
+                dd.Reverse();
+            }
+            foreach (var (mesh, material) in dd)
+            {
+                if (l.Count > 0 && l.Exists(x => x.Priority <= mesh.Priority))// && mesh.Priority != 0)) 
+                {
+                    int id = -1;
+                    if (l.Exists(x => x.Priority < mesh.Priority))
+                        id = l.FindIndex(x => x.Priority < mesh.Priority);
+                    else if (l.Exists(x => x.Priority == mesh.Priority))
+                        id = l.FindLastIndex(x => x.Priority == mesh.Priority) + 1;
+                    l.Insert(id, mesh); m.Insert(id, material);
+                }
+                // else if (l.Count > 0  && l.Exists(x => x.Priority == 0 && mesh.Priority == 0))
+                // {
+                //     int id = l.FindLastIndex(x => x.Priority == 0); 
+                //     l.Insert(id, mesh); m.Insert(id, material); 
+                // }
+                // else if (l.Count > 0)
+                // {
+                //     if (Vector3.Distance(mesh.Center + actorSceneObj.StageObj.Translation, scn.Camera.Eye * 100) < Vector3.Distance(l[c].Center + actorSceneObj.StageObj.Translation, scn.Camera.Eye * 100))
+                //     {
+                //         l.Insert(l.Count-1, mesh); m.Insert(m.Count-1, material);
+                //     }
+                // }
+                else { l.Add(mesh); m.Add(material); }
+                // Console.WriteLine(l[c].Center);
+                c+= 1;
+            }
+            l.Reverse();
+            m.Reverse();
+            if (actorSceneObj.Actor.Name == "UsefulRuinMountain") 
+            {
+                //Debug.Assert(true);
+            }
+            // Console.WriteLine(actorSceneObj.StageObj.Translation);
+            // Console.WriteLine(scn.Camera.Eye);
+            
+            
+            for (int h = 0; h < m.Count; h++)
+            {
+                var material = m[h];
+                var mesh = l[h];
+                material.SetSelectionColor(new(s_highlightColor, actorSceneObj.Selected ? 0.4f : 0));
+                material.SetMatrices(s_projectionMatrix, actorSceneObj.Transform, s_viewMatrix);
+                if (scn.CanPreviewLights) material.SetLight0((scn.PreviewOneLight ? (scn.PreviewLight ?? scn.GetPreviewLight(actor.InitLight.Type)) : scn.GetPreviewLight(actor.InitLight.Type)) ?? _defaultLight);
+                else material.SetLight0(_defaultLight); 
+                material.SetViewRotation(s_cameraRotation);
+
+                if (!material.TryUse(gl, out ProgramUniformScope scope))
+                    continue;
+
+                using (scope)
+                {
+                    if (material.CullFaceMode == TriangleFace.FrontAndBack)
+                        gl.Disable(EnableCap.CullFace);
+                    else
+                        gl.CullFace(material.CullFaceMode);
+
+                    if (material.BlendingEnabled)
+                    {
+                        gl.Enable(EnableCap.Blend | (EnableCap)0x0B60);// Attempt at Fog rendering
+
+                        gl.BlendColor(
+                            material.BlendingColor.X,
+                            material.BlendingColor.Y,
+                            material.BlendingColor.Z,
+                            material.BlendingColor.W
+                        );
+
+                        gl.BlendEquationSeparate(material.ColorBlendEquation, BlendEquationModeEXT.Max );//material.AlphaBlendEquation);
+
+                        gl.BlendFuncSeparate(
+                            material.ColorSrcFact,
+                            material.ColorDstFact,
+                            material.AlphaSrcFact,
+                            material.AlphaDstFact
+                        );
+                    }
+
+                    gl.StencilFunc(material.StencilFunction, material.StencilRef, material.StencilMask);
+
+                    gl.StencilMask(material.StencilBufferMask);
+
+                    gl.StencilOp(material.StencilOps[0], material.StencilOps[1], material.StencilOps[2]);
+
+                    gl.DepthFunc(material.DepthFunction);
+                    gl.DepthMask(material.DepthMaskEnabled); // /* Hacky fix to self overlapping alphas (within the same mesh),*/ if we wanted it && !material.Name.Contains("Edge"));
+
+                    gl.ColorMask(
+                        material.ColorMask[0],
+                        material.ColorMask[1],
+                        material.ColorMask[2],
+                        material.ColorMask[3]
+                    );
+
+                    if (material.PolygonOffsetFillEnabled)
+                    {
+                        gl.Enable(EnableCap.PolygonOffsetFill);
+                        gl.PolygonOffset(0, material.PolygonOffsetUnit);
+                    }
+
                     material.Program.TryGetUniformLoc("uPickingId", out int location);
                     gl.Uniform1(location, actorSceneObj.PickingId);
 
