@@ -173,7 +173,7 @@ internal static class ModelRenderer
                 s_relationMaterialParams!.Selected = sceneObj.Selected;
 
                 gl.CullFace(TriangleFace.Back);
-                RelationLine.Render(gl, s_commonSceneParams, s_relationParams!, s_relationMaterialParams, actorSceneObj.PickingId, actorSceneObj.StageObj.Translation, actorSceneObj.StageObj.Parent.Translation);
+                RelationLine.Render(gl, s_commonSceneParams, s_relationParams!, s_relationMaterialParams, actorSceneObj.PickingId, actorSceneObj.StageObj.Translation + actorSceneObj.DeltaTranslation, actorSceneObj.StageObj.Parent.Translation);
             }
 
             if (actor.IsEmptyModel)
@@ -303,7 +303,7 @@ internal static class ModelRenderer
             s_relationMaterialParams!.Selected = actorSceneObj.Selected;
 
             gl.CullFace(TriangleFace.Back);
-            RelationLine.Render(gl, s_commonSceneParams, s_relationParams!, s_relationMaterialParams, actorSceneObj.PickingId, actorSceneObj.StageObj.Translation, actorSceneObj.StageObj.Parent.Translation);
+            RelationLine.Render(gl, s_commonSceneParams, s_relationParams!, s_relationMaterialParams, actorSceneObj.PickingId, actorSceneObj.StageObj.Translation + actorSceneObj.DeltaTranslation, actorSceneObj.StageObj.Parent.Translation);
         }
     }
 

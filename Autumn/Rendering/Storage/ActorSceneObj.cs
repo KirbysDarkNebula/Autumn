@@ -19,6 +19,9 @@ internal class ActorSceneObj : IStageSceneObj
     public bool Selected { get; set; }
     public bool Hovering { get; set; }
     public bool IsVisible { get; set; } = true;
+    public Vector3 DeltaTranslation;
+    public Vector3 DeltaScale = Vector3.One;
+    public Vector3 DeltaRotation;
 
     public ActorSceneObj(StageObj stageObj, Actor actorObj, uint pickingId)
     {
@@ -33,8 +36,8 @@ internal class ActorSceneObj : IStageSceneObj
 
     public void UpdateTransform()
     {
-        Vector3 scale = Actor.IsEmptyModel ? StageObj.Scale : StageObj.Scale * 0.01f;
-        Transform = MathUtils.CreateTransform(StageObj.Translation * 0.01f, scale, StageObj.Rotation);
+        Vector3 scale = Actor.IsEmptyModel ? StageObj.Scale : (StageObj.Scale * DeltaScale) * 0.01f;
+        Transform = MathUtils.CreateTransform(StageObj.Translation * 0.01f, DeltaTranslation * 0.01f, scale , StageObj.Rotation + DeltaRotation);
     }
 
     public void UpdateActor(LayeredFSHandler fsHandler, GLTaskScheduler scheduler)
@@ -58,6 +61,9 @@ internal class ActorSceneObj : IStageSceneObj
             Actor = fsHandler.ReadActor(actorName, ClassDatabaseWrapper.DatabaseEntries[actorName].ArchiveName, scheduler);
         else
             Actor = fsHandler.ReadActor(actorName, fallback, scheduler);
+        DeltaTranslation = Vector3.Zero;
+        DeltaScale = Vector3.One;
+        DeltaRotation = Vector3.Zero;
 
         UpdateTransform();
     }
