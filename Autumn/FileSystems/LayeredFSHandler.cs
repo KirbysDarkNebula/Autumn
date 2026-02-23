@@ -61,12 +61,12 @@ internal class LayeredFSHandler
         return new(name);
     }
 
-    public Actor ReadActorNewL(string actorName, string actorClass, GLTaskScheduler scheduler)
+    public Actor ReadActorNew(string actorName, string baseModelName, string actorClass, GLTaskScheduler scheduler)
     {
-        if (ModFS is not null && ModFS.ExistsActor(actorName))
-            return ModFS.ReadActorNew(actorName, actorClass, scheduler);
-        else if (OriginalFS is not null && OriginalFS.ExistsActor(actorName))
-            return OriginalFS.ReadActorNew(actorName, actorClass, scheduler);
+        if (ModFS is not null && ModFS.ExistsActor(baseModelName))
+            return ModFS.ReadActorNew(actorName, baseModelName, actorClass, scheduler);
+        else if (OriginalFS is not null && OriginalFS.ExistsActor(baseModelName))
+            return OriginalFS.ReadActorNew(actorName, baseModelName, actorClass, scheduler);
 
         return new(actorName);
     }
@@ -85,14 +85,14 @@ internal class LayeredFSHandler
         {
             if (ClassModifiersWrapper.ModifierEntries[className].Variants![actorName]!.Value.ModelReplace != null) 
             {
-                return ReadActorNewL(ClassModifiersWrapper.ModifierEntries[className].Variants![actorName]!.Value.ModelReplace!, className, scheduler);
+                return ReadActorNew(actorName, ClassModifiersWrapper.ModifierEntries[className].Variants![actorName]!.Value.ModelReplace!, className, scheduler);
             }
         }
         if (replacementDefault) // if we don't specify stuff for this particular case, and we have a default 
         {
             if (ClassModifiersWrapper.ModifierEntries[className].Default!.Value.ModelReplace != null) 
             {
-                return ReadActorNewL(ClassModifiersWrapper.ModifierEntries[className].Default!.Value.ModelReplace!, className,scheduler);
+                return ReadActorNew(actorName, ClassModifiersWrapper.ModifierEntries[className].Default!.Value.ModelReplace!, className, scheduler);
             }
         }
 
@@ -103,30 +103,30 @@ internal class LayeredFSHandler
             if (!ModFS.ExistsActor(dbArchiveReplacement))
             {
                 if (hasOg && OriginalFS.ExistsActor(dbArchiveReplacement))
-                    return OriginalFS.ReadActorNew(dbArchiveReplacement, className, scheduler);
+                    return OriginalFS.ReadActorNew(actorName, dbArchiveReplacement, className, scheduler);
                 else
                 {
                     if (!ModFS.ExistsActor(actorName))
                     {
                         if (hasOg && OriginalFS.ExistsActor(actorName))
-                            return OriginalFS.ReadActorNew(actorName, className, scheduler);
+                            return OriginalFS.ReadActorNew(actorName, actorName, className, scheduler);
                         else
                         {
                             if (!ModFS.ExistsActor(className))
                             {
                                 if (hasOg && OriginalFS.ExistsActor(className))
-                                    return OriginalFS.ReadActorNew(className, className, scheduler);
+                                    return OriginalFS.ReadActorNew(actorName, className, className, scheduler);
                             }
                             else
-                                return ModFS.ReadActorNew(className, className, scheduler);
+                                return ModFS.ReadActorNew(actorName, className, className, scheduler);
                         }
                     }
                     else
-                        return ModFS.ReadActorNew(actorName, className, scheduler);
+                        return ModFS.ReadActorNew(actorName, actorName, className, scheduler);
                 }
             }
             else
-                return ModFS.ReadActorNew(dbArchiveReplacement, className, scheduler);
+                return ModFS.ReadActorNew(actorName, dbArchiveReplacement, className, scheduler);
         }
         if (hasOg)
         {
@@ -135,13 +135,13 @@ internal class LayeredFSHandler
                 if (!OriginalFS.ExistsActor(actorName))
                 {
                     if (OriginalFS.ExistsActor(className))
-                        return OriginalFS.ReadActorNew(className, className, scheduler);
+                        return OriginalFS.ReadActorNew(actorName, className, className, scheduler);
                 }
                 else
-                    return OriginalFS.ReadActorNew(actorName, className, scheduler);
+                    return OriginalFS.ReadActorNew(actorName, actorName, className, scheduler);
             }
             else
-                return OriginalFS.ReadActorNew(dbArchiveReplacement, className, scheduler);
+                return OriginalFS.ReadActorNew(actorName, dbArchiveReplacement, className, scheduler);
         }
         return new(actorName);
     }

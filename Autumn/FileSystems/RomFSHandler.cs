@@ -561,17 +561,13 @@ internal partial class RomFSHandler
         return actor;
     }
 
-    public Actor ReadActorNew(string actorName, string actorClass, GLTaskScheduler scheduler)
+    public Actor ReadActorNew(string actorName, string baseModelName, string actorClass, GLTaskScheduler scheduler)
     {
-        string path = Path.Join(_actorsPath, actorName + ".szs");
-
+        string path = Path.Join(_actorsPath, baseModelName + ".szs");
         // Return cached actor if valid (not modified externally)
-        if (_cachedActors.TryGetValue(path, out Actor? cachedActor))
+        if (_cachedActors.TryGetValue(actorName, out Actor? cachedActor))
         {
-            DateTime timestamp = File.GetLastWriteTime(path);
-
-            if (_cachedActorsTimestamps.TryGetValue(path, out DateTime oldTimestamp) && oldTimestamp == timestamp)
-                return cachedActor;
+            return cachedActor;
         }
 
         Actor actor = new(actorName);
@@ -591,7 +587,7 @@ internal partial class RomFSHandler
         if (narc is null)
             return actor;
 
-        bool found = narc.TryGetFile(actorName + ".bcmdl", out byte[] cgfx);
+        bool found = narc.TryGetFile(baseModelName + ".bcmdl", out byte[] cgfx);
 
         if (!found)
             return actor;
@@ -699,9 +695,7 @@ internal partial class RomFSHandler
         }
 
         // Cache the actor
-        _cachedActors.Add(path, actor);
-        _cachedActorsTimestamps.Add(path, File.GetLastWriteTime(path));
-
+        _cachedActors.Add(actorName, actor);
         return actor;
     }
 

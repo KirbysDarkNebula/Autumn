@@ -453,9 +453,11 @@ internal static class ModelRenderer
                 if (actorSceneObj.ChildModelTransforms.Count > 0 && actorSceneObj.ChildModelTransforms.ContainsKey(mesh.Name))
                 {
                     actorSceneObj.DeltaTranslation += actorSceneObj.ChildModelTransforms[mesh.Name].Translate;
+                    actorSceneObj.DeltaScale *= actorSceneObj.ChildModelTransforms[mesh.Name].Scale;
                     actorSceneObj.UpdateTransform();
                     material.SetMatrices(s_projectionMatrix, actorSceneObj.Transform, s_viewMatrix);
                     actorSceneObj.DeltaTranslation -= actorSceneObj.ChildModelTransforms[mesh.Name].Translate;
+                    actorSceneObj.DeltaScale /= actorSceneObj.ChildModelTransforms[mesh.Name].Scale;
                     actorSceneObj.UpdateTransform();   
                 }
                 else
