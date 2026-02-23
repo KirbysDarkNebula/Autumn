@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using Autumn.Background;
 using Autumn.Storage;
+using Autumn.Wrappers;
 using NARCSharp;
 
 namespace Autumn.FileSystems;
@@ -45,6 +46,10 @@ internal class LayeredFSHandler
 
         return new();
     }
+    public void ReadActorExtras(string actorName, string className, Actor actor, GLTaskScheduler scheduler)
+    {
+        OriginalFS.ReadActorExtras(actorName, className, actor, scheduler);
+    }
 
     public Actor ReadActor(string name, GLTaskScheduler scheduler)
     {
@@ -56,100 +61,89 @@ internal class LayeredFSHandler
         return new(name);
     }
 
-    public Actor ReadActor(string name, string? fallback, GLTaskScheduler scheduler)
+    public Actor ReadActorNewL(string actorName, string actorClass, GLTaskScheduler scheduler)
     {
-        if (fallback is null)
-            return ReadActor(name, scheduler);
+        if (ModFS is not null && ModFS.ExistsActor(actorName))
+            return ModFS.ReadActorNew(actorName, actorClass, scheduler);
+        else if (OriginalFS is not null && OriginalFS.ExistsActor(actorName))
+            return OriginalFS.ReadActorNew(actorName, actorClass, scheduler);
 
-        var hasMod = ModFS != null;
-        var hasOg = OriginalFS != null;
-        if (hasMod)
-        {
-            if (!ModFS.ExistsActor(name))
-            {
-                if (hasOg && OriginalFS.ExistsActor(name))
-                    return OriginalFS.ReadActor(name, scheduler);
-                else
-                {
-                    if (ModFS.ExistsActor(fallback))
-                        return ModFS.ReadActor(fallback, scheduler);
-                    else if (hasOg && OriginalFS.ExistsActor(fallback))
-                        return OriginalFS.ReadActor(fallback, scheduler);
-                }
-            }
-            else
-                return ModFS.ReadActor(name, scheduler);
-        }
-
-        if (hasOg)
-        {
-            if (!OriginalFS.ExistsActor(name))
-            {
-                if (OriginalFS.ExistsActor(fallback))
-                    return OriginalFS.ReadActor(fallback, scheduler);
-            }
-            else
-                return OriginalFS.ReadActor(name, scheduler);
-        }
-
-        return new(name);
+        return new(actorName);
     }
-    public Actor ReadActor(string name, string? dbArchive, string? fallback, GLTaskScheduler scheduler)
+    public Actor ReadActorNew(string actorName, string? className, GLTaskScheduler scheduler)
     {
-        if (dbArchive == null && fallback == null) return ReadActor(name, scheduler);
-        else if (dbArchive == null) return ReadActor(name, fallback, scheduler);
-        else if (fallback == null) return ReadActor(name, dbArchive, scheduler);
-
+        if (className == null) return ReadActor(actorName, scheduler);
 
         var hasMod = ModFS != null;
         var hasOg = OriginalFS != null;
 
+        bool replacementVariants = ClassModifiersWrapper.ModifierEntries.ContainsKey(className) && ClassModifiersWrapper.ModifierEntries[className].Variants != null && ClassModifiersWrapper.ModifierEntries[className].Variants!.ContainsKey(actorName);
+        bool replacementDefault = ClassModifiersWrapper.ModifierEntries.ContainsKey(className) && ClassModifiersWrapper.ModifierEntries[className].Default != null;
+        bool replacementDatabase = ClassDatabaseWrapper.DatabaseEntries.ContainsKey(className) && ClassDatabaseWrapper.DatabaseEntries[className].ArchiveName != null;
+
+        if (replacementVariants) // if we specify stuff for this particular type of the actor
+        {
+            if (ClassModifiersWrapper.ModifierEntries[className].Variants![actorName]!.Value.ModelReplace != null) 
+            {
+                return ReadActorNewL(ClassModifiersWrapper.ModifierEntries[className].Variants![actorName]!.Value.ModelReplace!, className, scheduler);
+            }
+        }
+        if (replacementDefault) // if we don't specify stuff for this particular case, and we have a default 
+        {
+            if (ClassModifiersWrapper.ModifierEntries[className].Default!.Value.ModelReplace != null) 
+            {
+                return ReadActorNewL(ClassModifiersWrapper.ModifierEntries[className].Default!.Value.ModelReplace!, className,scheduler);
+            }
+        }
+
+        string dbArchiveReplacement = replacementDatabase ? ClassDatabaseWrapper.DatabaseEntries[className].ArchiveName! : "";
+
         if (hasMod)
         {
-            if (!ModFS.ExistsActor(dbArchive))
+            if (!ModFS.ExistsActor(dbArchiveReplacement))
             {
-                if (hasOg && OriginalFS.ExistsActor(dbArchive))
-                    return OriginalFS.ReadActor(dbArchive, scheduler);
+                if (hasOg && OriginalFS.ExistsActor(dbArchiveReplacement))
+                    return OriginalFS.ReadActorNew(dbArchiveReplacement, className, scheduler);
                 else
                 {
-                    if (!ModFS.ExistsActor(name))
+                    if (!ModFS.ExistsActor(actorName))
                     {
-                        if (hasOg && OriginalFS.ExistsActor(name))
-                            return OriginalFS.ReadActor(name, scheduler);
+                        if (hasOg && OriginalFS.ExistsActor(actorName))
+                            return OriginalFS.ReadActorNew(actorName, className, scheduler);
                         else
                         {
-                            if (!ModFS.ExistsActor(fallback))
+                            if (!ModFS.ExistsActor(className))
                             {
-                                if (hasOg && OriginalFS.ExistsActor(fallback))
-                                    return OriginalFS.ReadActor(fallback, scheduler);
+                                if (hasOg && OriginalFS.ExistsActor(className))
+                                    return OriginalFS.ReadActorNew(className, className, scheduler);
                             }
                             else
-                                return ModFS.ReadActor(fallback, scheduler);
+                                return ModFS.ReadActorNew(className, className, scheduler);
                         }
                     }
                     else
-                        return ModFS.ReadActor(name, scheduler);
+                        return ModFS.ReadActorNew(actorName, className, scheduler);
                 }
             }
             else
-                return ModFS.ReadActor(dbArchive, scheduler);
+                return ModFS.ReadActorNew(dbArchiveReplacement, className, scheduler);
         }
         if (hasOg)
         {
-            if (!OriginalFS!.ExistsActor(dbArchive))
+            if (!OriginalFS!.ExistsActor(dbArchiveReplacement))
             {
-                if (!OriginalFS.ExistsActor(name))
+                if (!OriginalFS.ExistsActor(actorName))
                 {
-                    if (OriginalFS.ExistsActor(fallback))
-                        return OriginalFS.ReadActor(fallback, scheduler);
+                    if (OriginalFS.ExistsActor(className))
+                        return OriginalFS.ReadActorNew(className, className, scheduler);
                 }
                 else
-                    return OriginalFS.ReadActor(name, scheduler);
+                    return OriginalFS.ReadActorNew(actorName, className, scheduler);
             }
             else
-                return OriginalFS.ReadActor(dbArchive, scheduler);
+                return OriginalFS.ReadActorNew(dbArchiveReplacement, className, scheduler);
         }
-        return new(name);
+        return new(actorName);
     }
 
     public bool WriteStage(Stage stage, bool _useClassNames)

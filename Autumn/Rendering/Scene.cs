@@ -57,11 +57,10 @@ internal class Scene
     private Dictionary<StageFog, List<ISceneObj>> _stageFogList = new();
     private Dictionary<StageFog, int> _stageFogCount = new();
 
-
-    List<ISceneObj> Opaque = new();
-    List<ActorSceneObj> Translucent = new();
-    List<ActorSceneObj> Subtractive = new();
-    List<ActorSceneObj> Additive = new();
+    public List<ISceneObj> Opaque = new();
+    public List<ActorSceneObj> Translucent = new();
+    public List<ActorSceneObj> Subtractive = new();
+    public List<ActorSceneObj> Additive = new();
 
     public Scene(Stage stage, LayeredFSHandler fsHandler, GLTaskScheduler scheduler, ref string status)
     {
@@ -652,19 +651,51 @@ internal class Scene
         )
             actorName = modelNameString;
 
-        fsHandler.ReadCreatorClassNameTable().TryGetValue(actorName, out string? fallback);
+        fsHandler.ReadCreatorClassNameTable().TryGetValue(actorName, out string? actorClass);
 
         Actor actor;
-        if (fallback != null && ClassDatabaseWrapper.DatabaseEntries.ContainsKey(fallback) && ClassDatabaseWrapper.DatabaseEntries[fallback].ArchiveName != null)
-        {
-            actor = fsHandler.ReadActor(actorName, ClassDatabaseWrapper.DatabaseEntries[fallback].ArchiveName, fallback, scheduler);
-        }
-        else if (ClassDatabaseWrapper.DatabaseEntries.ContainsKey(actorName) && ClassDatabaseWrapper.DatabaseEntries[actorName].ArchiveName != null)
-            actor = fsHandler.ReadActor(actorName, ClassDatabaseWrapper.DatabaseEntries[actorName].ArchiveName, scheduler);
-        else
-            actor = fsHandler.ReadActor(actorName, fallback, scheduler);
-
+        actor = fsHandler.ReadActorNew(actorName, actorClass, scheduler);
+        // if (actorClass != null && ClassModifiersWrapper.ModifierEntries.ContainsKey(actorClass) && ClassModifiersWrapper.ModifierEntries[actorClass].Variants.ContainsKey(actorName) && ClassModifiersWrapper.ModifierEntries[actorClass].Variants[actorName]!.Value.ModelReplace != null)
+        // {
+        //     actor = fsHandler.ReadActor(ClassModifiersWrapper.ModifierEntries[actorClass].Variants[actorName]!.Value.ModelReplace!, ClassDatabaseWrapper.DatabaseEntries[actorClass].ArchiveName, actorClass, scheduler);
+        // }
+        // else if (actorClass != null && ClassDatabaseWrapper.DatabaseEntries.ContainsKey(actorClass) && ClassDatabaseWrapper.DatabaseEntries[actorClass].ArchiveName != null)
+        // {
+        //     actor = fsHandler.ReadActor(actorName, ClassDatabaseWrapper.DatabaseEntries[actorClass].ArchiveName, actorClass, scheduler);
+        // }
+        // else if (ClassDatabaseWrapper.DatabaseEntries.ContainsKey(actorName) && ClassDatabaseWrapper.DatabaseEntries[actorName].ArchiveName != null)
+        //     actor = fsHandler.ReadActor(actorName, ClassDatabaseWrapper.DatabaseEntries[actorName].ArchiveName, scheduler);
+        // else
+        //     actor = fsHandler.ReadActor(actorName, actorClass, scheduler);
+        
         ActorSceneObj actorSceneObj = new(stageObj, actor, _lastPickingId);
+
+
+
+        if (actorClass != null && ClassModifiersWrapper.ModifierEntries.ContainsKey(actorClass)) 
+        {
+            fsHandler.ReadActorExtras(actorName, actorClass, actor, scheduler);
+        
+            ClassModifiersWrapper.ModifierEntry? act = null;
+            if (ClassModifiersWrapper.ModifierEntries[actorClass].Variants != null && ClassModifiersWrapper.ModifierEntries[actorClass].Variants.ContainsKey(actorName))
+            {
+                act = ClassModifiersWrapper.ModifierEntries[actorClass].Variants![actorName]!.Value;
+            }
+            else if (ClassModifiersWrapper.ModifierEntries[actorClass].Default != null)
+            {
+                act = ClassModifiersWrapper.ModifierEntries[actorClass].Default!.Value;
+            }
+            if (act is not null)
+            {
+                if (act.Value.Translation != null) 
+                    actorSceneObj.DeltaTranslation = act.Value.Translation.Value;
+                if (act.Value.Scale != null) 
+                    actorSceneObj.DeltaScale = act.Value.Scale.Value;
+                if (act.Value.Rotation != null) 
+                    actorSceneObj.DeltaRotation = act.Value.Rotation.Value;
+            }
+        }
+
         scheduler.EnqueueGLTask( gl => 
             {
                 if (actor.IsEmptyModel) Opaque.Add(actorSceneObj);

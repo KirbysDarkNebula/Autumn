@@ -117,7 +117,7 @@ internal static class ChangeHandler
                 if (sceneObj is ActorSceneObj actorSceneObj)
                 {
                     actorSceneObj.StageObj.Name = prior;
-                    actorSceneObj.UpdateActor(window.ContextHandler.FSHandler, window.GLTaskScheduler);
+                    actorSceneObj.UpdateActor(window.ContextHandler.FSHandler, window.CurrentScene!, window.GLTaskScheduler);
                 }
                 if (sceneObj is BasicSceneObj basicSceneObj && basicSceneObj.StageObj.IsArea())
                 {
@@ -130,7 +130,7 @@ internal static class ChangeHandler
                 if (sceneObj is ActorSceneObj actorSceneObj)
                 {
                     actorSceneObj.StageObj.Name = final;
-                    actorSceneObj.UpdateActor(window.ContextHandler.FSHandler, window.GLTaskScheduler);
+                    actorSceneObj.UpdateActor(window.ContextHandler.FSHandler, window.CurrentScene!, window.GLTaskScheduler);
                 }
                 if (sceneObj is BasicSceneObj basicSceneObj && basicSceneObj.StageObj.IsArea())
                 {

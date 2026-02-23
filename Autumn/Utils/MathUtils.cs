@@ -75,6 +75,25 @@ internal static class MathUtils
 
         return mScale * (mRotationX * mRotationY * mRotationZ) * mTranslation;
     }
+    public static Matrix4x4 CreateTransformWithDelta(Vector3 translation, Vector3 deltatranslation, Vector3 scale, Vector3 rotation)
+    {
+        float rotX = (float)(Math.PI / 180 * rotation.X),
+            rotY = (float)(Math.PI / 180 * rotation.Y),
+            rotZ = (float)(Math.PI / 180 * rotation.Z);
+
+        // M = S * (Rx * Ry * Rz) * T
+        // Where T -> Translation, S -> Scale, R -> Rotation.
+
+        Matrix4x4 mTranslation = Matrix4x4.CreateTranslation(translation);
+        Matrix4x4 mScale = Matrix4x4.CreateScale(scale);
+
+        Matrix4x4 mRotationX = Matrix4x4.CreateRotationX(rotX);
+        Matrix4x4 mRotationY = Matrix4x4.CreateRotationY(rotY);
+        Matrix4x4 mRotationZ = Matrix4x4.CreateRotationZ(rotZ);
+        Matrix4x4 mDTranslation = Matrix4x4.CreateTranslation(deltatranslation);
+
+        return mScale * mDTranslation * (mRotationX * mRotationY * mRotationZ) * mTranslation;
+    }
 
     public static Matrix2X4<float> GetTextureTransform(
         Vector2 scale,
