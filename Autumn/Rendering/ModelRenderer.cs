@@ -199,16 +199,19 @@ internal static class ModelRenderer
                 int c = 0;
                 foreach (var (mesh, material) in actor.EnumerateMeshes(layer))
                 {
-                    if (l.Count > 0 && l.Exists(x => x.Priority <= mesh.Priority))// && mesh.Priority != 0)) 
-                    {
-                        int id = l.FindIndex(x => x.Priority <= mesh.Priority); 
-                        l.Insert(id, mesh); m.Insert(id, material); 
-                    }
-                    else { l.Add(mesh); m.Add(material); }
-                    c+= 1;
+                    // if (l.Count > 0 && l.Exists(x => x.Priority <= mesh.Priority))// && mesh.Priority != 0)) 
+                    // {
+                    //     int id = l.FindIndex(x => x.Priority <= mesh.Priority); 
+                    //     l.Insert(id, mesh); m.Insert(id, material); 
+                    // }
+                    // else { l.Add(mesh); m.Add(material); }
+                    // c+= 1;
+                    m.Add(material);
+                    l.Add(mesh);
                 }
-                l.Reverse();
-                m.Reverse();
+                // l.Reverse();
+                // m.Reverse();
+                
                 //
             for (int h = 0; h < m.Count; h++)
             {
