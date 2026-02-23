@@ -535,6 +535,7 @@ internal class H3DRenderingMaterial
             };
 
             uint sampler = SamplerHelper.CreateSampler2D(gl, wrapModeS, wrapModeT, magFilter, minFilter);
+            gl.SamplerParameter(sampler, SamplerParameterF.LodBias, -2.5f); // Editor option to improve rendering
 
             return new(sampler, texture);
 
