@@ -1,6 +1,8 @@
+using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Diagnostics;
 using System.Numerics;
+using Autumn.Context;
 using Autumn.Enums;
 using Autumn.FileSystems;
 using Autumn.Rendering.Area;
@@ -9,6 +11,7 @@ using Autumn.Rendering.DefaultCube;
 using Autumn.Rendering.Rail;
 using Autumn.Rendering.Storage;
 using Autumn.Storage;
+using Autumn.Utils;
 using Autumn.Wrappers;
 using SceneGL;
 using SceneGL.GLHelpers;
@@ -111,7 +114,7 @@ internal static class ModelRenderer
         s_relationParams!.Camera = cameraEye;
     }
 
-    public static void Draw(GL gl, ISceneObj sceneObj, Scene scn)
+    public static void Draw(GL gl, ISceneObj sceneObj, ReadOnlyDictionary<string, string> CCNT, Scene scn)
     {
         if (s_commonSceneParams is null || s_defaultCubeMaterialParams is null)
             throw new InvalidOperationException(
@@ -447,8 +450,19 @@ internal static class ModelRenderer
             {
                 var material = m[h];
                 var mesh = l[h];
+                if (actorSceneObj.ChildModelTransforms.Count > 0 && actorSceneObj.ChildModelTransforms.ContainsKey(mesh.Name))
+                {
+                    actorSceneObj.DeltaTranslation += actorSceneObj.ChildModelTransforms[mesh.Name].Translate;
+                    actorSceneObj.UpdateTransform();
+                    material.SetMatrices(s_projectionMatrix, actorSceneObj.Transform, s_viewMatrix);
+                    actorSceneObj.DeltaTranslation -= actorSceneObj.ChildModelTransforms[mesh.Name].Translate;
+                    actorSceneObj.UpdateTransform();   
+                }
+                else
+                {
+                    material.SetMatrices(s_projectionMatrix, actorSceneObj.Transform, s_viewMatrix);
+                }
                 material.SetSelectionColor(new(s_highlightColor, actorSceneObj.Selected ? 0.4f : 0));
-                material.SetMatrices(s_projectionMatrix, actorSceneObj.Transform, s_viewMatrix);
                 if (scn.CanPreviewLights) material.SetLight0((scn.PreviewOneLight ? (scn.PreviewLight ?? scn.GetPreviewLight(actor.InitLight.Type)) : scn.GetPreviewLight(actor.InitLight.Type)) ?? _defaultLight);
                 else material.SetLight0(_defaultLight); 
                 material.SetViewRotation(s_cameraRotation);
@@ -516,8 +530,10 @@ internal static class ModelRenderer
                     gl.Disable(EnableCap.Blend);
                 }
             }
+            
         }
     }
+
 
     public static void AddLUTTexture(GL gl, string tableName, H3DLUTSampler sampler)
     {

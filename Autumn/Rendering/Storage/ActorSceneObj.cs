@@ -24,6 +24,8 @@ internal class ActorSceneObj : IStageSceneObj
     public Vector3 DeltaScale = Vector3.One;
     public Vector3 DeltaRotation;
 
+    public Dictionary<string, Transform> ChildModelTransforms = new();
+
     public ActorSceneObj(StageObj stageObj, Actor actorObj, uint pickingId)
     {
         StageObj = stageObj;
@@ -55,6 +57,7 @@ internal class ActorSceneObj : IStageSceneObj
         DeltaTranslation = Vector3.Zero;
         DeltaScale = Vector3.One;
         DeltaRotation = Vector3.Zero;
+        ChildModelTransforms = new();
 
         fsHandler.ReadCreatorClassNameTable().TryGetValue(actorName, out string? actorClass);
 
@@ -81,6 +84,22 @@ internal class ActorSceneObj : IStageSceneObj
                     DeltaScale = act.Value.Scale.Value;
                 if (act.Value.Rotation != null) 
                     DeltaRotation = act.Value.Rotation.Value;
+                if (act.Value.ExtraModels != null)
+                {
+                    foreach(string m in act.Value.ExtraModels.Keys)
+                    {
+                        ChildModelTransforms.Add(m, new());
+                        if (act.Value.ExtraModels[m] != null)
+                        {
+                            if (act.Value.ExtraModels[m]!.Value.Translation != null) 
+                                ChildModelTransforms[m].Translate = act.Value.ExtraModels[m]!.Value.Translation!.Value;
+                            if (act.Value.ExtraModels[m]!.Value.Scale != null) 
+                                ChildModelTransforms[m].Scale = act.Value.ExtraModels[m]!.Value.Scale!.Value;
+                            if (act.Value.ExtraModels[m]!.Value.Rotation != null) 
+                                ChildModelTransforms[m].Rotate = act.Value.ExtraModels[m]!.Value.Rotation!.Value;
+                        }
+                    }
+                }
             }
         }
 

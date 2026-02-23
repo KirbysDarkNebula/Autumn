@@ -301,3 +301,10 @@ internal static class MathUtils
         aabb.Max.Z = Math.Max(aabb.Max.Z, box.Size.Z);
     }
 }
+
+internal class Transform
+{
+    public Vector3 Translate = Vector3.Zero;
+    public Vector3 Rotate = Vector3.Zero;
+    public Vector3 Scale = Vector3.One;
+}

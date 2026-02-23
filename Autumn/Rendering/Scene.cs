@@ -2,8 +2,10 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using Autumn.Background;
+using Autumn.Context;
 using Autumn.Enums;
 using Autumn.FileSystems;
+using Autumn.GUI.Windows;
 using Autumn.History;
 using Autumn.Rendering.Area;
 using Autumn.Rendering.Rail;
@@ -70,15 +72,17 @@ internal class Scene
         GenerateFog();
     }
 
-    public void Render(GL gl, in Matrix4x4 view, in Matrix4x4 projection, in Quaternion cameraRot, in Vector3 cameraEye)
+    public void Render(MainWindowContext window, in Matrix4x4 view, in Matrix4x4 projection, in Quaternion cameraRot, in Vector3 cameraEye)
     {
         ModelRenderer.UpdateSceneParams(view, projection, cameraRot, cameraEye);
+
+        var CCNT = window.ContextHandler.FSHandler!.ReadCreatorClassNameTable();
 
         if (ModelRenderer.UseFullAlphaPipeline)
         {
             foreach (ISceneObj o in Opaque)
             {
-                ModelRenderer.DrawLayer(gl, o, this, H3DMeshLayer.Opaque);
+                ModelRenderer.DrawLayer(window.GL!, o, this, H3DMeshLayer.Opaque);
             }
 
             // Preemptively sort by distance
@@ -87,27 +91,27 @@ internal class Scene
             l2.Reverse();
             foreach (ISceneObj o in Translucent)
             {
-                ModelRenderer.DrawLayer(gl, o, this, H3DMeshLayer.Translucent);
+                ModelRenderer.DrawLayer(window.GL!, o, this, H3DMeshLayer.Translucent);
             }
             foreach (ISceneObj o in Subtractive)
             {
-                ModelRenderer.DrawLayer(gl, o, this, H3DMeshLayer.Subtractive);
+                ModelRenderer.DrawLayer(window.GL!, o, this, H3DMeshLayer.Subtractive);
             }
             foreach (ISceneObj o in Additive)
             {
-                ModelRenderer.DrawLayer(gl, o, this, H3DMeshLayer.Additive);
+                ModelRenderer.DrawLayer(window.GL!, o, this, H3DMeshLayer.Additive);
             }
             foreach (ISceneObj o in EnumerateSceneObjs())
             {
                 if (o is not ActorSceneObj) continue;
                 if ((o as ActorSceneObj)!.StageObj.Parent != null) 
-                    ModelRenderer.DrawRelLines(gl, (o as ActorSceneObj)!);
+                    ModelRenderer.DrawRelLines(window.GL!, (o as ActorSceneObj)!);
             }
         }
         else
         {
             foreach (ISceneObj obj in EnumerateSceneObjs())
-                ModelRenderer.Draw(gl, obj, this);
+                ModelRenderer.Draw(window.GL!, obj, CCNT, this);
         }
     }
 
@@ -661,6 +665,22 @@ internal class Scene
                     actorSceneObj.DeltaScale = act.Value.Scale.Value;
                 if (act.Value.Rotation != null) 
                     actorSceneObj.DeltaRotation = act.Value.Rotation.Value;
+                if (act.Value.ExtraModels != null)
+                {
+                    foreach(string m in act.Value.ExtraModels.Keys)
+                    {
+                        actorSceneObj.ChildModelTransforms.Add(m, new());
+                        if (act.Value.ExtraModels[m] != null)
+                        {
+                            if (act.Value.ExtraModels[m]!.Value.Translation != null) 
+                                actorSceneObj.ChildModelTransforms[m].Translate = act.Value.ExtraModels[m]!.Value.Translation!.Value;
+                            if (act.Value.ExtraModels[m]!.Value.Scale != null) 
+                                actorSceneObj.ChildModelTransforms[m].Scale = act.Value.ExtraModels[m]!.Value.Scale!.Value;
+                            if (act.Value.ExtraModels[m]!.Value.Rotation != null) 
+                                actorSceneObj.ChildModelTransforms[m].Rotate = act.Value.ExtraModels[m]!.Value.Rotation!.Value;
+                        }
+                    }
+                }
             }
         }
 

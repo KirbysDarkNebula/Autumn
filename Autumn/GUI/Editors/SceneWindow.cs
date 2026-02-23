@@ -433,7 +433,7 @@ internal class SceneWindow(MainWindowContext window)
         window.GL!.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
         window.CurrentScene?.Render(
-            window.GL,
+            window,
             viewMatrix,
             projectionMatrix,
             window.CurrentScene.Camera.Rotation,
