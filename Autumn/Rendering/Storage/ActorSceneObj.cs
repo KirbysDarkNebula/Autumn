@@ -127,12 +127,12 @@ internal class ActorSceneObj : IStageSceneObj
     {
         switch (entry.Args![arg].ArgType)
         {
-            case ArgType.Tower:
+            case ArgType.Tower: // Add actors on top or below, if we add below we move the actor upwards
                 string baseModel = entry.Args![arg].RepeatModel ?? Actor.Name;
                 Vector3 offset = entry.Args![arg].Offset ?? Vector3.UnitY * 100;
-                int CountTop = (entry.Args![arg].CountTop != null && entry.Args![arg].CountTop!.Value) ? 1 : 0;
+                bool BottomUp = entry.Args![arg].CountTop != null && entry.Args![arg].CountTop!.Value;
                 int start = SubActors.Count - BaseSubActorCount;
-                int end = int.Clamp((int)StageObj.Properties[arg]!, CountTop, 10) - CountTop; // Default is 3 / -1 is 3, max is 10, min is 0 but let's not
+                int end = int.Clamp((int)StageObj.Properties[arg]!, BottomUp ? 1 : 0, 10) - (BottomUp ? 1 : 0); // Default is 3 / -1 is 3, max is 10, min is 0 but let's not
 
 
                 if (start > end)
@@ -141,7 +141,8 @@ internal class ActorSceneObj : IStageSceneObj
                     {
                         SubActors.RemoveAt(j);
                         SubActorTransforms.RemoveAt(j);
-                        DeltaTranslation = offset * (j);
+                        if (!BottomUp)
+                            DeltaTranslation = offset * (j);
                     }
                 }
                 else
@@ -152,8 +153,9 @@ internal class ActorSceneObj : IStageSceneObj
                         if (SubAct is null)
                             continue;
                         SubActors.Add(SubAct);
-                        SubActorTransforms.Add(new() { Translate = -offset * (j+1)});
-                        DeltaTranslation = offset * (j+1);
+                        SubActorTransforms.Add(new() { Translate = (BottomUp ? 1 : -1)* offset * (j+1)});
+                        if (!BottomUp)
+                            DeltaTranslation = offset * (j+1);
                     }
                 }
                 AABB = Actor.AABB * (end > 0 ? end : 1);
