@@ -26,3 +26,10 @@ internal enum GizmoPosition : byte
     First = 1,
     Last = 2,
 }
+
+internal enum ArgType
+{
+    Unknown = 0,
+    AnimChange = 1,
+    Tower = 2,
+}

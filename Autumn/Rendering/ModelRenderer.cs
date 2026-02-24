@@ -20,6 +20,7 @@ using Silk.NET.OpenGL;
 using SPICA.Formats.CtrGfx;
 using SPICA.Formats.CtrH3D;
 using SPICA.Formats.CtrH3D.LUT;
+using static Autumn.Wrappers.ClassModifiersWrapper;
 
 namespace Autumn.Rendering;
 
@@ -444,26 +445,22 @@ internal static class ModelRenderer
             }
             // Console.WriteLine(actorSceneObj.StageObj.Translation);
             // Console.WriteLine(scn.Camera.Eye);
-            
-            
+            # warning THIS WILL RENDER MULTIPLE TIMES IF AN OBJECT HAS MULTIPLE LAYERS
+            if (actorSceneObj.SubActors.Count > 0)
+            {
+                int cnt = 0;
+                foreach (Actor SubActor in actorSceneObj.SubActors)
+                {
+                    DrawSubActor(gl, actorSceneObj, SubActor, cnt, scn);
+                    cnt += 1;
+                } 
+            }
+
             for (int h = 0; h < m.Count; h++)
             {
                 var material = m[h];
                 var mesh = l[h];
-                if (actorSceneObj.ChildModelTransforms.Count > 0 && actorSceneObj.ChildModelTransforms.ContainsKey(mesh.Name))
-                {
-                    actorSceneObj.DeltaTranslation += actorSceneObj.ChildModelTransforms[mesh.Name].Translate;
-                    actorSceneObj.DeltaScale *= actorSceneObj.ChildModelTransforms[mesh.Name].Scale;
-                    actorSceneObj.UpdateTransform();
-                    material.SetMatrices(s_projectionMatrix, actorSceneObj.Transform, s_viewMatrix);
-                    actorSceneObj.DeltaTranslation -= actorSceneObj.ChildModelTransforms[mesh.Name].Translate;
-                    actorSceneObj.DeltaScale /= actorSceneObj.ChildModelTransforms[mesh.Name].Scale;
-                    actorSceneObj.UpdateTransform();   
-                }
-                else
-                {
-                    material.SetMatrices(s_projectionMatrix, actorSceneObj.Transform, s_viewMatrix);
-                }
+                material.SetMatrices(s_projectionMatrix, actorSceneObj.Transform, s_viewMatrix);
                 material.SetSelectionColor(new(s_highlightColor, actorSceneObj.Selected ? 0.4f : 0));
                 if (scn.CanPreviewLights) material.SetLight0((scn.PreviewOneLight ? (scn.PreviewLight ?? scn.GetPreviewLight(actor.InitLight.Type)) : scn.GetPreviewLight(actor.InitLight.Type)) ?? _defaultLight);
                 else material.SetLight0(_defaultLight); 
@@ -536,6 +533,90 @@ internal static class ModelRenderer
         }
     }
 
+    public static void DrawSubActor(GL gl, ActorSceneObj actorSceneObj, Actor act, int idx, Scene scn)
+    {
+        foreach (var (mesh, material) in act.EnumerateMeshes(H3DMeshLayer.Opaque))
+        {
+            string className = actorSceneObj.StageObj.Name;
+
+            actorSceneObj.DeltaTranslation += actorSceneObj.SubActorTransforms[idx].Translate * actorSceneObj.StageObj.Scale;
+            actorSceneObj.DeltaScale *= actorSceneObj.SubActorTransforms[idx].Scale;
+            actorSceneObj.UpdateTransform();
+            material.SetMatrices(s_projectionMatrix, actorSceneObj.Transform, s_viewMatrix);
+            actorSceneObj.DeltaTranslation -= actorSceneObj.SubActorTransforms[idx].Translate * actorSceneObj.StageObj.Scale;
+            actorSceneObj.DeltaScale /= actorSceneObj.SubActorTransforms[idx].Scale;
+            actorSceneObj.UpdateTransform();  
+
+            material.SetSelectionColor(new(s_highlightColor, actorSceneObj.Selected ? 0.4f : 0));
+            # warning maybe replace with parent Actor's light type and don't try to match the other one
+            if (scn.CanPreviewLights) material.SetLight0((scn.PreviewOneLight ? (scn.PreviewLight ?? scn.GetPreviewLight(act.InitLight.Type)) : scn.GetPreviewLight(act.InitLight.Type)) ?? _defaultLight);
+            else material.SetLight0(_defaultLight); 
+            material.SetViewRotation(s_cameraRotation);
+
+            if (!material.TryUse(gl, out ProgramUniformScope scope))
+                continue;
+
+            using (scope)
+            {
+                if (material.CullFaceMode == TriangleFace.FrontAndBack)
+                    gl.Disable(EnableCap.CullFace);
+                else
+                    gl.CullFace(material.CullFaceMode);
+
+                if (material.BlendingEnabled)
+                {
+                    gl.Enable(EnableCap.Blend | (EnableCap)0x0B60);// Attempt at Fog rendering
+
+                    gl.BlendColor(
+                        material.BlendingColor.X,
+                        material.BlendingColor.Y,
+                        material.BlendingColor.Z,
+                        material.BlendingColor.W
+                    );
+
+                    gl.BlendEquationSeparate(material.ColorBlendEquation, BlendEquationModeEXT.Max );//material.AlphaBlendEquation);
+
+                    gl.BlendFuncSeparate(
+                        material.ColorSrcFact,
+                        material.ColorDstFact,
+                        material.AlphaSrcFact,
+                        material.AlphaDstFact
+                    );
+                }
+
+                gl.StencilFunc(material.StencilFunction, material.StencilRef, material.StencilMask);
+
+                gl.StencilMask(material.StencilBufferMask);
+
+                gl.StencilOp(material.StencilOps[0], material.StencilOps[1], material.StencilOps[2]);
+
+                gl.DepthFunc(material.DepthFunction);
+                gl.DepthMask(material.DepthMaskEnabled); // /* Hacky fix to self overlapping alphas (within the same mesh),*/ if we wanted it && !material.Name.Contains("Edge"));
+
+                gl.ColorMask(
+                    material.ColorMask[0],
+                    material.ColorMask[1],
+                    material.ColorMask[2],
+                    material.ColorMask[3]
+                );
+
+                if (material.PolygonOffsetFillEnabled)
+                {
+                    gl.Enable(EnableCap.PolygonOffsetFill);
+                    gl.PolygonOffset(0, material.PolygonOffsetUnit);
+                }
+
+                material.Program.TryGetUniformLoc("uPickingId", out int location);
+                gl.Uniform1(location, actorSceneObj.PickingId);
+
+                mesh.Draw();
+
+                gl.Enable(EnableCap.CullFace);
+                gl.Disable(EnableCap.PolygonOffsetFill);
+                gl.Disable(EnableCap.Blend);
+            }
+        }
+    }
 
     public static void AddLUTTexture(GL gl, string tableName, H3DLUTSampler sampler)
     {

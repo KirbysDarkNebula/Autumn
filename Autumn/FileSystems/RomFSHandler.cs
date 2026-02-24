@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using Autumn.Background;
 using Autumn.Enums;
+using Autumn.Rendering.Storage;
 using Autumn.Storage;
 using Autumn.Utils;
 using Autumn.Wrappers;
@@ -699,7 +700,7 @@ internal partial class RomFSHandler
         return actor;
     }
 
-    public void ReadActorExtras(string actorName, string actorClass, Actor actor, GLTaskScheduler scheduler)
+    public void ReadActorExtras(string actorName, string actorClass, ActorSceneObj actor, GLTaskScheduler scheduler)
     {
         if (ClassModifiersWrapper.ModifierEntries.ContainsKey(actorClass))
         {
@@ -733,19 +734,21 @@ internal partial class RomFSHandler
                     }
                     catch
                     {
-                        Debug.Write($"The actor's cgfx could not be read ({s})", "Error");
+                        Debug.Write($"The subactor's cgfx could not be read ({s})", "Error");
                         continue;
                     }
 
+                    Actor subActor = new(s);
+
                     foreach (H3DTexture texture in h3D.Textures)
                     {
-                        scheduler.EnqueueGLTask(gl => actor.AddTexture(gl, texture));
+                        scheduler.EnqueueGLTask(gl => subActor.AddTexture(gl, texture));
                     }
 
                     foreach (H3DLUT lut in h3D.LUTs)
                         foreach (H3DLUTSampler sampler in lut.Samplers)
                         {
-                            scheduler.EnqueueGLTask(gl => actor.AddLUTTexture(gl, lut.Name, sampler));
+                            scheduler.EnqueueGLTask(gl => subActor.AddLUTTexture(gl, lut.Name, sampler));
                         }
 
                     foreach (H3DModel model in h3D.Models)
@@ -762,7 +765,7 @@ internal partial class RomFSHandler
                         {
                             foreach (H3DMesh mesh in meshLists[i])
                             {
-                                actor.ForceModelNotEmpty();
+                                subActor.ForceModelNotEmpty();
 
                                 // Obtain the mesh's material by its index.
                                 int matIdx = mesh.MaterialIndex;
@@ -781,14 +784,93 @@ internal partial class RomFSHandler
                                 H3DMeshLayer meshLayer = (H3DMeshLayer)i;
 
                                 scheduler.EnqueueGLTask(gl =>
-                                    actor.AddMesh(gl, meshLayer, mesh, subMeshCulling, material, skeleton)
+                                    subActor.AddMesh(gl, meshLayer, mesh, subMeshCulling, material, skeleton)
                                 );
                             }
                         }
                     }
+
+                    actor.SubActors.Add(subActor);
                 }
             }
         }
+    }
+    public Actor?  ReadActorExtrasArg(string subActorName, GLTaskScheduler scheduler)
+    {
+        if (_cachedActors.ContainsKey(subActorName))
+            return _cachedActors[subActorName];
+        Actor subActor = new(subActorName);
+        string ex = Path.Join(_actorsPath, subActorName + ".szs");
+        NARCFileSystem? narc = SZSWrapper.ReadFile(ex);
+
+        if (narc is null || (narc is not null && !narc.TryGetFile(subActorName + ".bcmdl", out byte[] cgfx)))
+            return null;
+        narc!.TryGetFile(subActorName + ".bcmdl", out cgfx);
+        H3D h3D;
+
+        try
+        {
+            using MemoryStream stream = new(cgfx);
+            h3D = Gfx.OpenAsH3D(stream);
+        }
+        catch
+        {
+            Debug.Write($"The subactor's cgfx could not be read ({subActorName})", "Error");
+            return null;
+        }
+
+
+        foreach (H3DTexture texture in h3D.Textures)
+        {
+            scheduler.EnqueueGLTask(gl => subActor.AddTexture(gl, texture));
+        }
+
+        foreach (H3DLUT lut in h3D.LUTs)
+            foreach (H3DLUTSampler sampler in lut.Samplers)
+            {
+                scheduler.EnqueueGLTask(gl => subActor.AddLUTTexture(gl, lut.Name, sampler));
+            }
+
+        foreach (H3DModel model in h3D.Models)
+        {
+            List<H3DMesh>[] meshLists =
+            [
+                model.MeshesLayer0, // Opaque layer
+                    model.MeshesLayer1, // Translucent layer
+                    model.MeshesLayer2, // Subtractive layer
+                    model.MeshesLayer3 // Additive layer
+            ];
+
+            for (int i = 0; i < meshLists.Length; i++)
+            {
+                foreach (H3DMesh mesh in meshLists[i])
+                {
+                    subActor.ForceModelNotEmpty();
+
+                    // Obtain the mesh's material by its index.
+                    int matIdx = mesh.MaterialIndex;
+                    H3DMaterial material = model.Materials[matIdx];
+
+                    // Obtain submesh culling.
+                    int meshIdx = model.Meshes.IndexOf(mesh);
+
+                    H3DSubMeshCulling? subMeshCulling = null;
+
+                    if (model.SubMeshCullings.Count > meshIdx)
+                        subMeshCulling = model.SubMeshCullings[meshIdx];
+
+                    var skeleton = model.Skeleton;
+
+                    H3DMeshLayer meshLayer = (H3DMeshLayer)i;
+
+                    scheduler.EnqueueGLTask(gl =>
+                        subActor.AddMesh(gl, meshLayer, mesh, subMeshCulling, material, skeleton)
+                    );
+                }
+            }
+        }
+        _cachedActors.Add(subActorName, subActor);
+        return subActor;
     }
 
     public ReadOnlyDictionary<string, string> ReadCreatorClassNameTable()

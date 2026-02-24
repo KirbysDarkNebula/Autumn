@@ -27,6 +27,7 @@ internal static class YAMLWrapper
         }
         catch
         {
+            Console.WriteLine($"File in {path} was incorrectly formatted");
             return default;
         }
 

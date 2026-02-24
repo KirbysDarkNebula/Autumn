@@ -2,6 +2,7 @@
 using Autumn.Background;
 using Autumn.Enums;
 using Autumn.FileSystems;
+using Autumn.Rendering.CtrH3D;
 using Autumn.Storage;
 using Autumn.Utils;
 using Autumn.Wrappers;
@@ -12,6 +13,12 @@ internal class ActorSceneObj : IStageSceneObj
 {
     public StageObj StageObj { get; }
     public Actor Actor { get; set; }
+    public List<Actor> SubActors = new(); // Flagpole top, Arg additions, etc
+    public List<Transform> SubActorTransforms = new(); //Transform
+    /// <summary>
+    /// Number of subactors this actor has by default, without args
+    /// </summary>
+    public int BaseSubActorCount = 0; 
 
     public Matrix4x4 Transform { get; set; }
     public AxisAlignedBoundingBox AABB { get; set; }
@@ -24,7 +31,6 @@ internal class ActorSceneObj : IStageSceneObj
     public Vector3 DeltaScale = Vector3.One;
     public Vector3 DeltaRotation;
 
-    public Dictionary<string, Transform> ChildModelTransforms = new();
 
     public ActorSceneObj(StageObj stageObj, Actor actorObj, uint pickingId)
     {
@@ -57,7 +63,7 @@ internal class ActorSceneObj : IStageSceneObj
         DeltaTranslation = Vector3.Zero;
         DeltaScale = Vector3.One;
         DeltaRotation = Vector3.Zero;
-        ChildModelTransforms = new();
+        SubActorTransforms = new();
 
         fsHandler.ReadCreatorClassNameTable().TryGetValue(actorName, out string? actorClass);
 
@@ -65,17 +71,9 @@ internal class ActorSceneObj : IStageSceneObj
 
         if (actorClass != null && ClassModifiersWrapper.ModifierEntries.ContainsKey(actorClass)) 
         {
-            fsHandler.ReadActorExtras(actorName, actorClass, Actor, scheduler);
+            fsHandler.ReadActorExtras(actorName, actorClass, this, scheduler);
         
-            ClassModifiersWrapper.ModifierEntry? act = null;
-            if (ClassModifiersWrapper.ModifierEntries[actorClass].Variants != null && ClassModifiersWrapper.ModifierEntries[actorClass].Variants.ContainsKey(actorName))
-            {
-                act = ClassModifiersWrapper.ModifierEntries[actorClass].Variants![actorName]!.Value;
-            }
-            else if (ClassModifiersWrapper.ModifierEntries[actorClass].Default != null)
-            {
-                act = ClassModifiersWrapper.ModifierEntries[actorClass].Default!.Value;
-            }
+            ClassModifiersWrapper.ModifierEntry? act = ClassModifiersWrapper.GetEntry(actorName, actorClass);
             if (act is not null)
             {
                 if (act.Value.Translation != null) 
@@ -86,18 +84,19 @@ internal class ActorSceneObj : IStageSceneObj
                     DeltaRotation = act.Value.Rotation.Value;
                 if (act.Value.ExtraModels != null)
                 {
-                    foreach(string m in act.Value.ExtraModels.Keys)
+                    foreach(Actor ac in SubActors)
                     {
-                        ChildModelTransforms.Add(m, new());
-                        if (act.Value.ExtraModels[m] != null)
+                        SubActorTransforms.Add(new());
+                        if (act.Value.ExtraModels[ac.Name] != null)
                         {
-                            if (act.Value.ExtraModels[m]!.Value.Translation != null) 
-                                ChildModelTransforms[m].Translate = act.Value.ExtraModels[m]!.Value.Translation!.Value;
-                            if (act.Value.ExtraModels[m]!.Value.Scale != null) 
-                                ChildModelTransforms[m].Scale = act.Value.ExtraModels[m]!.Value.Scale!.Value;
-                            if (act.Value.ExtraModels[m]!.Value.Rotation != null) 
-                                ChildModelTransforms[m].Rotate = act.Value.ExtraModels[m]!.Value.Rotation!.Value;
+                            if (act.Value.ExtraModels[ac.Name]!.Value.Translation != null) 
+                                SubActorTransforms[BaseSubActorCount].Translate = act.Value.ExtraModels[ac.Name]!.Value.Translation!.Value;
+                            if (act.Value.ExtraModels[ac.Name]!.Value.Scale != null) 
+                                SubActorTransforms[BaseSubActorCount].Scale = act.Value.ExtraModels[ac.Name]!.Value.Scale!.Value;
+                            if (act.Value.ExtraModels[ac.Name]!.Value.Rotation != null) 
+                                SubActorTransforms[BaseSubActorCount].Rotate = act.Value.ExtraModels[ac.Name]!.Value.Rotation!.Value;
                         }
+                        BaseSubActorCount += 1;
                     }
                 }
             }
@@ -122,5 +121,49 @@ internal class ActorSceneObj : IStageSceneObj
             }
         );
         UpdateTransform();
+    }
+
+    public void UpdateActorFromArg(LayeredFSHandler fsHandler, ClassModifiersWrapper.ModifierEntry entry, string arg, Scene scn, GLTaskScheduler scheduler)
+    {
+        switch (entry.Args![arg].ArgType)
+        {
+            case ArgType.Tower:
+                string baseModel = entry.Args![arg].RepeatModel ?? Actor.Name;
+                Vector3 offset = entry.Args![arg].Offset ?? Vector3.UnitY * 100;
+                int CountTop = (entry.Args![arg].CountTop != null && entry.Args![arg].CountTop!.Value) ? 1 : 0;
+                int start = SubActors.Count - BaseSubActorCount;
+                int end = int.Clamp((int)StageObj.Properties[arg]!, CountTop, 10) - CountTop; // Default is 3 / -1 is 3, max is 10, min is 0 but let's not
+
+
+                if (start > end)
+                {
+                    for (int j = start-1; j >= end; j--)
+                    {
+                        SubActors.RemoveAt(j);
+                        SubActorTransforms.RemoveAt(j);
+                        DeltaTranslation = offset * (j);
+                    }
+                }
+                else
+                {
+                    for (int j = start; j < end; j++)
+                    {
+                        Actor? SubAct = fsHandler.ReadActorExtrasArg(baseModel, scheduler);
+                        if (SubAct is null)
+                            continue;
+                        SubActors.Add(SubAct);
+                        SubActorTransforms.Add(new() { Translate = -offset * (j+1)});
+                        DeltaTranslation = offset * (j+1);
+                    }
+                }
+                AABB = Actor.AABB * (end > 0 ? end : 1);
+                UpdateTransform();
+
+            break;
+
+            default:
+            
+            break;
+        } 
     }
 }

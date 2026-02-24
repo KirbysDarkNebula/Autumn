@@ -646,17 +646,9 @@ internal class Scene
 
         if (actorClass != null && ClassModifiersWrapper.ModifierEntries.ContainsKey(actorClass)) 
         {
-            fsHandler.ReadActorExtras(actorName, actorClass, actor, scheduler);
+            fsHandler.ReadActorExtras(actorName, actorClass, actorSceneObj, scheduler);
         
-            ClassModifiersWrapper.ModifierEntry? act = null;
-            if (ClassModifiersWrapper.ModifierEntries[actorClass].Variants != null && ClassModifiersWrapper.ModifierEntries[actorClass].Variants.ContainsKey(actorName))
-            {
-                act = ClassModifiersWrapper.ModifierEntries[actorClass].Variants![actorName]!.Value;
-            }
-            else if (ClassModifiersWrapper.ModifierEntries[actorClass].Default != null)
-            {
-                act = ClassModifiersWrapper.ModifierEntries[actorClass].Default!.Value;
-            }
+            ClassModifiersWrapper.ModifierEntry? act = ClassModifiersWrapper.GetEntry(actorName, actorClass);
             if (act is not null)
             {
                 if (act.Value.Translation != null) 
@@ -667,18 +659,19 @@ internal class Scene
                     actorSceneObj.DeltaRotation = act.Value.Rotation.Value;
                 if (act.Value.ExtraModels != null)
                 {
-                    foreach(string m in act.Value.ExtraModels.Keys)
+                    foreach(Actor ac in actorSceneObj.SubActors)
                     {
-                        actorSceneObj.ChildModelTransforms.Add(m, new());
-                        if (act.Value.ExtraModels[m] != null)
+                        actorSceneObj.SubActorTransforms.Add(new());
+                        if (act.Value.ExtraModels[ac.Name] != null)
                         {
-                            if (act.Value.ExtraModels[m]!.Value.Translation != null) 
-                                actorSceneObj.ChildModelTransforms[m].Translate = act.Value.ExtraModels[m]!.Value.Translation!.Value;
-                            if (act.Value.ExtraModels[m]!.Value.Scale != null) 
-                                actorSceneObj.ChildModelTransforms[m].Scale = act.Value.ExtraModels[m]!.Value.Scale!.Value;
-                            if (act.Value.ExtraModels[m]!.Value.Rotation != null) 
-                                actorSceneObj.ChildModelTransforms[m].Rotate = act.Value.ExtraModels[m]!.Value.Rotation!.Value;
+                            if (act.Value.ExtraModels[ac.Name]!.Value.Translation != null) 
+                                actorSceneObj.SubActorTransforms[actorSceneObj.BaseSubActorCount].Translate = act.Value.ExtraModels[ac.Name]!.Value.Translation!.Value;
+                            if (act.Value.ExtraModels[ac.Name]!.Value.Scale != null) 
+                                actorSceneObj.SubActorTransforms[actorSceneObj.BaseSubActorCount].Scale = act.Value.ExtraModels[ac.Name]!.Value.Scale!.Value;
+                            if (act.Value.ExtraModels[ac.Name]!.Value.Rotation != null) 
+                                actorSceneObj.SubActorTransforms[actorSceneObj.BaseSubActorCount].Rotate = act.Value.ExtraModels[ac.Name]!.Value.Rotation!.Value;
                         }
+                        actorSceneObj.BaseSubActorCount += 1;
                     }
                 }
             }

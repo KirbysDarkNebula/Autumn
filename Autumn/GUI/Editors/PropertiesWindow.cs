@@ -353,6 +353,7 @@ internal class PropertiesWindow(MainWindowContext window)
                                 return;
                             }
                             if (!name.Contains("Arg")) continue;
+                            bool valueChanged = false;
                             string cls = GetClassFromCCNT(stageObj.Name);
                             if (!ClassDatabaseWrapper.DatabaseEntries.ContainsKey(cls))
                             {
@@ -360,18 +361,17 @@ internal class PropertiesWindow(MainWindowContext window)
                                 {
                                     case int:
                                         int intBuf = (int)(property ?? -1);
-                                        InputIntProperties(name, ref intBuf, 1, ref stageObj);
-
+                                        valueChanged = InputIntProperties(name, ref intBuf, 1, ref stageObj);
                                         break;
 
                                     case string:
                                         string strBuf = (string)(property ?? string.Empty);
-                                        InputTextProperties(name, ref strBuf, 128, ref stageObj);
+                                        valueChanged = InputTextProperties(name, ref strBuf, 128, ref stageObj);
                                         break;
 
                                     case float:
                                         float flBuf = (float)(property ?? -1);
-                                        InputFloatProperties(name, ref flBuf, 1, ref stageObj);
+                                        valueChanged = InputFloatProperties(name, ref flBuf, 1, ref stageObj);
                                         break;
 
                                     default:
@@ -404,6 +404,7 @@ internal class PropertiesWindow(MainWindowContext window)
                                                     if (intBuf != rf)
                                                     {
                                                         ChangeHandler.ChangeDictionaryValue(scn.History, stageObj.Properties, name, intBuf, rf);
+                                                        valueChanged = true;
                                                     }
                                                 }
                                                 else
@@ -417,6 +418,7 @@ internal class PropertiesWindow(MainWindowContext window)
                                                     if (intBuf != argEntry.Values.Keys.ElementAt(rf))
                                                     {
                                                         ChangeHandler.ChangeDictionaryValue(scn.History, stageObj.Properties, name, intBuf, argEntry.Values.Keys.ElementAt(rf));
+                                                        valueChanged = true;
                                                     }
                                                 }
                                             }
@@ -429,6 +431,7 @@ internal class PropertiesWindow(MainWindowContext window)
                                                 if ((intBuf != -1) != rf)
                                                 {
                                                     ChangeHandler.ChangeDictionaryValue(scn.History, stageObj.Properties, name, intBuf, rf ? 1 : -1);
+                                                    valueChanged = true;
                                                 }
                                             }
                                             else // if (argEntry.Type is null || argEntry.Type == "int")
@@ -441,6 +444,7 @@ internal class PropertiesWindow(MainWindowContext window)
                                                 if (intBuf != rf)
                                                 {
                                                     ChangeHandler.ChangeDictionaryValue(scn.History, stageObj.Properties, name, intBuf, rf);
+                                                    valueChanged = true;
                                                     //stageObj.Properties[name] = rf;
                                                 }
                                             }
@@ -448,19 +452,19 @@ internal class PropertiesWindow(MainWindowContext window)
                                         }
                                         else
                                         {
-                                            InputIntProperties(name, ref intBuf, 1, ref stageObj);
+                                            valueChanged = InputIntProperties(name, ref intBuf, 1, ref stageObj);
                                             ImGui.SetItemTooltip("No description");
                                         }
                                         break;
 
                                     case string:
                                         string strBuf = (string)(property ?? string.Empty);
-                                        InputTextProperties(name, ref strBuf, 128, ref stageObj);
+                                        valueChanged = InputTextProperties(name, ref strBuf, 128, ref stageObj);
                                         break;
 
                                     case float:
                                         float flBuf = (float)(property ?? -1);
-                                        InputFloatProperties(name, ref flBuf, 1, ref stageObj);
+                                        valueChanged = InputFloatProperties(name, ref flBuf, 1, ref stageObj);
                                         break;
 
                                     default:
@@ -468,6 +472,16 @@ internal class PropertiesWindow(MainWindowContext window)
                                             "The property type " + property?.GetType().FullName
                                                 ?? "null" + " is not supported."
                                         );
+                                }
+                            }
+                            if (valueChanged && ClassModifiersWrapper.ModifierEntries.ContainsKey(cls))
+                            {
+                                var entry = ClassModifiersWrapper.GetEntry(stageObj.Name, cls);
+                                if (entry != null && entry!.Value.Args != null && entry!.Value.Args.ContainsKey(name))
+                                {
+                                    (sceneObj as ActorSceneObj)!.UpdateActorFromArg(window.ContextHandler.FSHandler, (ClassModifiersWrapper.ModifierEntry)entry, name, scn, window.GLTaskScheduler);
+                                    if (valueChanged) Console.WriteLine(name);
+                                    if (valueChanged) Console.WriteLine(stageObj.Properties[name]);
                                 }
                             }
                         }
@@ -1590,8 +1604,8 @@ internal class PropertiesWindow(MainWindowContext window)
         if (ImGui.InputText("##" + str + "i", ref s, max, ImGuiInputTextFlags.EnterReturnsTrue))
         {
             ChangeHandler.ChangeDictionaryValue(window.CurrentScene!.History, sto.Properties, str, rf, s);
+            return true;
         }
-
         return false;
     }
 
@@ -1605,6 +1619,7 @@ internal class PropertiesWindow(MainWindowContext window)
         if (ImGui.InputInt("##" + str + "i", ref i, step, default, ImGuiInputTextFlags.EnterReturnsTrue))
         {
             ChangeHandler.ChangeDictionaryValue(window.CurrentScene!.History, sto.Properties, str, rf, i);
+            return true;
         }
         return false;
     }
@@ -1618,6 +1633,7 @@ internal class PropertiesWindow(MainWindowContext window)
         if (ImGui.InputInt("##" + str + "i", ref i, step, default, ImGuiInputTextFlags.EnterReturnsTrue))
         {
             ChangeHandler.ChangeDictionaryValue(window.CurrentScene!.History, sto.Properties, str, rf, i);
+            return true;
         }
         return false;
     }
@@ -1631,6 +1647,7 @@ internal class PropertiesWindow(MainWindowContext window)
         if (ImGui.InputInt("##" + str + "i", ref i, step, default, ImGuiInputTextFlags.EnterReturnsTrue))
         {
             ChangeHandler.ChangeDictionaryValue(window.CurrentScene!.History, sto.Properties, str, rf, i);
+            return true;
         }
         return false;
     }
@@ -1643,6 +1660,7 @@ internal class PropertiesWindow(MainWindowContext window)
         if (ImGui.InputFloat("##" + str + "i", ref i, step, default, default, ImGuiInputTextFlags.EnterReturnsTrue))
         {
             ChangeHandler.ChangeDictionaryValue(window.CurrentScene!.History, sto.Properties, str, rf, i);
+            return true;
         }
 
         return false;

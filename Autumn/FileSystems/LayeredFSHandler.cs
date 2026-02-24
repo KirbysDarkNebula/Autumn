@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using Autumn.Background;
+using Autumn.Rendering.Storage;
 using Autumn.Storage;
 using Autumn.Wrappers;
 using NARCSharp;
@@ -46,9 +47,15 @@ internal class LayeredFSHandler
 
         return new();
     }
-    public void ReadActorExtras(string actorName, string className, Actor actor, GLTaskScheduler scheduler)
+    
+    #warning TODO -> NEEDS REFACTOR MAKE IT READ FROM EITHER FILESYSTEM
+    public void ReadActorExtras(string actorName, string className, ActorSceneObj actor, GLTaskScheduler scheduler)
     {
         OriginalFS.ReadActorExtras(actorName, className, actor, scheduler);
+    }
+    public Actor? ReadActorExtrasArg(string subActorName, GLTaskScheduler scheduler)
+    {
+        return OriginalFS.ReadActorExtrasArg(subActorName, scheduler);
     }
 
     public Actor ReadActor(string name, GLTaskScheduler scheduler)
