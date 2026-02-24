@@ -479,7 +479,7 @@ internal class PropertiesWindow(MainWindowContext window)
                                 var entry = ClassModifiersWrapper.GetEntry(stageObj.Name, cls);
                                 if (entry != null && entry!.Value.Args != null && entry!.Value.Args.ContainsKey(name))
                                 {
-                                    (sceneObj as ActorSceneObj)!.UpdateActorFromArg(window.ContextHandler.FSHandler, (ClassModifiersWrapper.ModifierEntry)entry, name, scn, window.GLTaskScheduler);
+                                    (sceneObj as ActorSceneObj)!.UpdateActorFromArg(window.ContextHandler.FSHandler, (ClassModifiersWrapper.ModifierEntry)entry, name, window.GLTaskScheduler);
                                     if (valueChanged) Console.WriteLine(name);
                                     if (valueChanged) Console.WriteLine(stageObj.Properties[name]);
                                 }

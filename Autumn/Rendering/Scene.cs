@@ -674,6 +674,15 @@ internal class Scene
                         actorSceneObj.BaseSubActorCount += 1;
                     }
                 }
+
+                if (act.Value.Args != null)
+                foreach (string arg in act.Value.Args.Keys)
+                {
+                    if (stageObj.Properties.ContainsKey(arg))
+                    {
+                        actorSceneObj.UpdateActorFromArg(fsHandler, (ClassModifiersWrapper.ModifierEntry)act, arg, scheduler);
+                    }
+                }
             }
         }
 

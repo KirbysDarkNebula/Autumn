@@ -740,6 +740,19 @@ internal partial class RomFSHandler
 
                     Actor subActor = new(s);
 
+                    if (narc.TryGetFile("InitLight.byml", out byte[] light))
+                    {
+                        BYAML act_lights = BYAMLParser.Read(light, s_byamlEncoding);
+                        if (act_lights.RootNode.NodeType == BYAMLNodeType.Dictionary)
+                        {
+                            var lrt = act_lights.RootNode.GetValueAs<Dictionary<string, BYAMLNode>>();
+                            if (lrt!.ContainsKey("LightCalcType"))
+                                subActor.InitLight.GetCalcType((string)lrt["LightCalcType"].Value!);
+                            if (lrt!.ContainsKey("LightType"))
+                                subActor.InitLight.GetType((string)lrt["LightType"].Value!);
+                        }
+                    }
+
                     foreach (H3DTexture texture in h3D.Textures)
                     {
                         scheduler.EnqueueGLTask(gl => subActor.AddTexture(gl, texture));
@@ -807,6 +820,19 @@ internal partial class RomFSHandler
             return null;
         narc!.TryGetFile(subActorName + ".bcmdl", out cgfx);
         H3D h3D;
+
+        if (narc.TryGetFile("InitLight.byml", out byte[] light))
+        {
+            BYAML act_lights = BYAMLParser.Read(light, s_byamlEncoding);
+            if (act_lights.RootNode.NodeType == BYAMLNodeType.Dictionary)
+            {
+                var lrt = act_lights.RootNode.GetValueAs<Dictionary<string, BYAMLNode>>();
+                if (lrt!.ContainsKey("LightCalcType"))
+                    subActor.InitLight.GetCalcType((string)lrt["LightCalcType"].Value!);
+                if (lrt!.ContainsKey("LightType"))
+                    subActor.InitLight.GetType((string)lrt["LightType"].Value!);
+            }
+        }
 
         try
         {

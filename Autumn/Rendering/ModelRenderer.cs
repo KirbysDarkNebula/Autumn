@@ -535,6 +535,7 @@ internal static class ModelRenderer
 
     public static void DrawSubActor(GL gl, ActorSceneObj actorSceneObj, Actor act, int idx, Scene scn)
     {
+        #warning hardcoded to Opaque layers only for now
         foreach (var (mesh, material) in act.EnumerateMeshes(H3DMeshLayer.Opaque))
         {
             string className = actorSceneObj.StageObj.Name;

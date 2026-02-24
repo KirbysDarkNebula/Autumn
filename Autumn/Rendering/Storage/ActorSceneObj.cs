@@ -123,7 +123,7 @@ internal class ActorSceneObj : IStageSceneObj
         UpdateTransform();
     }
 
-    public void UpdateActorFromArg(LayeredFSHandler fsHandler, ClassModifiersWrapper.ModifierEntry entry, string arg, Scene scn, GLTaskScheduler scheduler)
+    public void UpdateActorFromArg(LayeredFSHandler fsHandler, ClassModifiersWrapper.ModifierEntry entry, string arg, GLTaskScheduler scheduler)
     {
         switch (entry.Args![arg].ArgType)
         {
