@@ -129,9 +129,10 @@ internal class ActorSceneObj : IStageSceneObj
         switch (entry.Args![arg].ArgType)
         {
             case ArgType.Tower: // Add actors on top or below, if we add below we move the actor upwards
-                string baseModel = entry.Args![arg].RepeatModel ?? Actor.Name;
-                Vector3 offset = entry.Args![arg].Offset ?? Vector3.UnitY * 100;
-                bool BottomUp = entry.Args![arg].CountTop != null && entry.Args![arg].CountTop!.Value;
+                var ag = (ClassModifiersWrapper.TowerArg)entry.ArgsRem![arg];
+                string baseModel = ag.RepeatModel ?? Actor.Name;
+                Vector3 offset = ag.Offset;
+                bool BottomUp = ag.CountTop != null && ag.CountTop!.Value;
                 int start = SubActors.Count - BaseSubActorCount;
                 int end = int.Clamp((int)StageObj.Properties[arg]!, BottomUp ? 1 : 0, 10) - (BottomUp ? 1 : 0); // Default is 3 / -1 is 3, max is 10, min is 0 but let's not
 

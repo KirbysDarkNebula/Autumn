@@ -631,9 +631,9 @@ internal partial class RomFSHandler
             }
 
         List<string> hidden = new();
-        if (replacementVariants && ClassModifiersWrapper.ModifierEntries[actorClass].Variants![actorName]!.Value.HiddenMeshes != null)
+        if (replacementVariants && ClassModifiersWrapper.ModifierEntries[actorClass].Variants![actorName]!.HiddenMeshes != null)
         {
-            hidden = ClassModifiersWrapper.ModifierEntries[actorClass].Variants![actorName]!.Value.HiddenMeshes!;
+            hidden = ClassModifiersWrapper.ModifierEntries[actorClass].Variants![actorName]!.HiddenMeshes!;
         }
         else if (replacementDefault && ClassModifiersWrapper.ModifierEntries[actorClass].Default!.Value.HiddenMeshes != null)
         {
@@ -707,7 +707,7 @@ internal partial class RomFSHandler
             ClassModifiersWrapper.ModifierEntry act;
             if (ClassModifiersWrapper.ModifierEntries[actorClass].Variants != null && ClassModifiersWrapper.ModifierEntries[actorClass].Variants.ContainsKey(actorName))
             {
-                act = ClassModifiersWrapper.ModifierEntries[actorClass].Variants![actorName]!.Value;
+                act = ClassModifiersWrapper.ModifierEntries[actorClass].Variants![actorName]!;
             }
             else if (ClassModifiersWrapper.ModifierEntries[actorClass].Default != null)
             {

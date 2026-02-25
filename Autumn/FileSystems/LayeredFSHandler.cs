@@ -90,9 +90,9 @@ internal class LayeredFSHandler
 
         if (replacementVariants) // if we specify stuff for this particular type of the actor
         {
-            if (ClassModifiersWrapper.ModifierEntries[className].Variants![actorName]!.Value.ModelReplace != null) 
+            if (ClassModifiersWrapper.ModifierEntries[className].Variants![actorName]!.ModelReplace != null) 
             {
-                return ReadActorNew(actorName, ClassModifiersWrapper.ModifierEntries[className].Variants![actorName]!.Value.ModelReplace!, className, scheduler);
+                return ReadActorNew(actorName, ClassModifiersWrapper.ModifierEntries[className].Variants![actorName]!.ModelReplace!, className, scheduler);
             }
         }
         if (replacementDefault) // if we don't specify stuff for this particular case, and we have a default 
