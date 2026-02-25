@@ -412,7 +412,7 @@ internal class H3DRenderingMaterial
                 Constant4Color = matParams.Constant4Color.ToVector4(),
                 Constant5Color = matParams.Constant5Color.ToVector4(),
                 CombBufferColor = matParams.TexEnvBufferColor.ToVector4(),
-                AlphaReference = matParams.AlphaTest.Reference / 225f,
+                AlphaReference = matParams.AlphaTest.Reference / 255f,
                 Light0 = new()
                 {
                     Ambient = new(0.1f, 0.1f, 0.1f, 1),

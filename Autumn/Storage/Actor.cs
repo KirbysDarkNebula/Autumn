@@ -170,10 +170,14 @@ internal class Actor
         return true;
     }
 
-    public IEnumerable<(H3DRenderingMesh Mesh, H3DRenderingMaterial Material)> EnumerateMeshes(
-        H3DMeshLayer layer
-    )
+    public IEnumerable<(H3DRenderingMesh Mesh, H3DRenderingMaterial Material)> EnumerateMeshes(H3DMeshLayer layer)
     {
+        foreach (var tuple in _meshes[(int)layer])
+            yield return tuple;
+    }
+    public IEnumerable<(H3DRenderingMesh Mesh, H3DRenderingMaterial Material)> EnumerateMeshes()
+    {
+        for (int layer = 0; layer < 4; layer++)
         foreach (var tuple in _meshes[(int)layer])
             yield return tuple;
     }

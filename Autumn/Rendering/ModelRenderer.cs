@@ -191,7 +191,7 @@ internal static class ModelRenderer
                 return;
             }
 
-            if (actor.Name == "TransparentWall" && !VisibleTransparentWall)
+            if (actor.Name.Contains("TransparentWall") && !VisibleTransparentWall)
             {
                 return;
             }
@@ -380,7 +380,7 @@ internal static class ModelRenderer
                     return;
                 }
 
-                if (actor.Name == "TransparentWall" && !VisibleTransparentWall)
+                if (actor.Name.Contains("TransparentWall") && !VisibleTransparentWall)
                 {
                     return;
                 }
@@ -536,7 +536,7 @@ internal static class ModelRenderer
     public static void DrawSubActor(GL gl, ActorSceneObj actorSceneObj, Actor act, int idx, Scene scn)
     {
         #warning hardcoded to Opaque layers only for now
-        foreach (var (mesh, material) in act.EnumerateMeshes(H3DMeshLayer.Opaque))
+        foreach (var (mesh, material) in act.EnumerateMeshes())
         {
             string className = actorSceneObj.StageObj.Name;
 
