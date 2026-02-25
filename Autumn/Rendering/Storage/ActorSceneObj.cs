@@ -63,7 +63,8 @@ internal class ActorSceneObj : IStageSceneObj
         DeltaTranslation = Vector3.Zero;
         DeltaScale = Vector3.One;
         DeltaRotation = Vector3.Zero;
-        SubActorTransforms = new();
+        SubActors.Clear();
+        SubActorTransforms.Clear();
 
         fsHandler.ReadCreatorClassNameTable().TryGetValue(actorName, out string? actorClass);
 
