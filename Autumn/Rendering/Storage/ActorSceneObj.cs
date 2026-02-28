@@ -126,15 +126,16 @@ internal class ActorSceneObj : IStageSceneObj
 
     public void UpdateActorFromArg(LayeredFSHandler fsHandler, ClassModifiersWrapper.ModifierEntry entry, string arg, GLTaskScheduler scheduler)
     {
+        int end;
         switch (entry.Args![arg].ArgType)
         {
             case ArgType.Tower: // Add actors on top or below, if we add below we move the actor upwards
-                var ag = (ClassModifiersWrapper.TowerArg)entry.ArgsRem![arg];
-                string baseModel = ag.RepeatModel ?? Actor.Name;
-                Vector3 offset = ag.Offset;
-                bool BottomUp = ag.CountTop != null && ag.CountTop!.Value;
+                var twAg = (ClassModifiersWrapper.TowerArg)entry.ArgsRem![arg];
+                string baseModel = twAg.RepeatModel ?? Actor.Name;
+                Vector3 offset = twAg.Offset;
+                bool BottomUp = twAg.CountTop != null && twAg.CountTop!.Value;
                 int start = SubActors.Count - BaseSubActorCount;
-                int end = int.Clamp((int)StageObj.Properties[arg]!, BottomUp ? 1 : 0, 10) - (BottomUp ? 1 : 0); // Default is 3 / -1 is 3, max is 10, min is 0 but let's not
+                end = int.Clamp((int)StageObj.Properties[arg]!, BottomUp ? 1 : 0, 10) - (BottomUp ? 1 : 0); // Default is 3 / -1 is 3, max is 10, min is 0 but let's not
 
 
                 if (start > end)
@@ -163,6 +164,90 @@ internal class ActorSceneObj : IStageSceneObj
                 AABB = Actor.AABB * (end > 0 ? end : 1);
                 UpdateTransform();
 
+            break;
+
+            case ArgType.SwingCoreLength:
+                var swLn = (ClassModifiersWrapper.SwingingCore)entry.ArgsRem![arg];
+                int argval = (int)StageObj.Properties[arg]!;
+                if (argval == -1) argval = 800; // Taken from game code
+                
+                int chainCount = (int)((argval - 250) * 0.01f) - 1; // Taken from game code
+                // chainCount = (int)((argval + 30) * 0.016666668f) - 1; // Taken from game code
+                if (chainCount < 1) chainCount = 1;
+
+                end = SubActors.Count - 1;
+                int oldcount = end-BaseSubActorCount;
+
+                // Check if the chain count changed to keep or remove
+                if (chainCount < oldcount)
+                    for (int j = end - 1; j >= BaseSubActorCount+ chainCount; j--)
+                    {
+                        SubActors.RemoveAt(j);
+                        SubActorTransforms.RemoveAt(j);
+                    }
+                else if (chainCount > oldcount)
+                    for (int i = int.Max(oldcount, 0); i < chainCount; i++)
+                    {
+                        Actor? SubAct = fsHandler.ReadActorExtrasArg(swLn.ChainModel, scheduler);
+                        if (SubAct is null)
+                            continue;
+                        if (SubActors.Count > 0)
+                        {
+                            SubActors.Insert(SubActors.Count-1, SubAct);
+                            SubActorTransforms.Insert(SubActors.Count-1, new());
+                        }
+                        else
+                        {
+                            SubActors.Add(SubAct);
+                            SubActorTransforms.Add(new());
+                        }
+                    }
+                // Update transforms to the current
+                for (int i = BaseSubActorCount; i < chainCount + BaseSubActorCount; i++)
+                {
+                    SubActorTransforms[i].Translate = - new Vector3(0,50,0) - Vector3.UnitY * ((argval - 300) / (chainCount+1)) + Vector3.UnitY * ((argval - 300) / (chainCount+1)) * -i;
+                }
+
+
+                // only once?
+                Actor? SubActBall = fsHandler.ReadActorExtrasArg(swLn.HeadModel, scheduler);
+                if (SubActBall != null)
+                {
+                    if (!SubActors.Contains(SubActBall))
+                    {
+                        SubActors.Add(SubActBall);
+                        SubActorTransforms.Add(new() { Translate = new Vector3(0, - argval + 100,0)});
+                    }
+                    else SubActorTransforms[^1].Translate = new Vector3(0, - argval + 100,0);
+                }
+                AABB = Actor.AABB * (argval / 100);
+                UpdateTransform();
+            break;
+
+            case ArgType.AddExtraModel:
+                var exMd = (ClassModifiersWrapper.ExtraArgModels)entry.ArgsRem![arg];
+                end = SubActors.Count + BaseSubActorCount;
+                if ((int)StageObj.Properties[arg]! == -1)
+                {
+                    for (int i = BaseSubActorCount; i < end; i++)
+                    {
+                        SubActors.RemoveAt(i);
+                        SubActorTransforms.RemoveAt(i);
+                    }
+                }
+                else
+                {
+                    foreach (string s in exMd.Models.Keys)
+                    {
+                        Actor? AddedModl = fsHandler.ReadActorExtrasArg(s, scheduler);
+                        if (AddedModl is null) continue;
+                        if (!SubActors.Contains(AddedModl))
+                        { 
+                            SubActors.Add(AddedModl);
+                            SubActorTransforms.Add(exMd.Models[s].GetTransform());
+                        }
+                    }
+                }
             break;
 
             default:

@@ -32,4 +32,15 @@ internal enum ArgType
     Unknown = 0,
     AnimChange = 1,
     Tower = 2,
+    /// <summary>
+    /// Number of balls per line
+    /// </summary>
+    RotateCoreCount = 3,
+    /// <summary>
+    /// Number of lines attached to the core
+    /// </summary>
+    RotateCoreSides = 4,
+
+    SwingCoreLength = 5,
+    AddExtraModel = 6,
 }

@@ -1,5 +1,6 @@
 using System.Numerics;
 using Autumn.Enums;
+using Autumn.Utils;
 using SharpYaml.Serialization;
 
 namespace Autumn.Wrappers;
@@ -29,6 +30,17 @@ internal static class ClassModifiersWrapper
         public Vector3? Translation { get; set; }
         public Vector3? Scale { get; set; }
         public Vector3? Rotation { get; set; }
+        public Transform GetTransform()
+        {
+            Transform t = new();
+            if (Translation != null)
+                t.Translate = Translation.Value;
+            if (Scale != null)
+                t.Scale = Scale.Value;
+            if (Rotation != null)
+                t.Rotate = Rotation.Value;
+            return t;
+        }
     }
     /// <summary>
     /// Temporary replacement for args
@@ -77,6 +89,36 @@ internal static class ClassModifiersWrapper
                 Offset = FromDict((Dictionary<object,object>)v);
         }
     }
+    public class ExtraArgModels : BaseArg
+    {
+        public Dictionary<string, ExtraModel> Models { get; set; } // If no RepeatModel -> use basemodel
+        public ExtraArgModels(Dictionary<string, object> props)
+        {
+            object? v;
+            if (props.TryGetValue("Models", out v))
+                if (v is Dictionary<object, object>)
+                {
+                    Models = new();
+                    var dc = (Dictionary<object, object>)v;
+                    foreach (string s in dc.Keys)
+                    {
+                        if (dc[s] is not Dictionary<object, object>) 
+                        {
+                            Models.Add(s, new());
+                            continue;
+                        }
+                        var EM = new ExtraModel();
+                        if (((Dictionary<object, object>)dc[s]).TryGetValue("Translation", out v))
+                            EM.Translation = FromDict((Dictionary<object, object>)v);
+                        if (((Dictionary<object, object>)dc[s]).TryGetValue("Scale", out v))
+                            EM.Scale = FromDict((Dictionary<object, object>)v);
+                        if (((Dictionary<object, object>)dc[s]).TryGetValue("Rotation", out v))
+                            EM.Rotation = FromDict((Dictionary<object, object>)v);
+                        Models.Add(s, EM);
+                    }
+                }
+        }
+    }
     /// <summary>
     /// Plays the specific frame of an animation in the model file 
     /// Can be used for material and skeleton animations
@@ -98,14 +140,64 @@ internal static class ClassModifiersWrapper
     }
 
     /// <summary>
+    /// Actor that has models (MiddleModel, PointModel) that rotate around it, one arg can set the amount of said RotateModel, another arg sets the number of lines of that
+    /// Value of the arg -> number of balls
+    /// </summary>
+    public class RotateCoreAmount : BaseArg
+    {
+        // public Vector3 Offset { get; set; } // Hardcoded
+        public string? PointModel { get; set; } // last repeated object
+        public string? MiddleModel { get; set; } // object to repeat in line
+        public RotateCoreAmount(Dictionary<string, object> props)
+        {
+            object? v;
+            if (props.TryGetValue("MiddleModel", out v))
+                MiddleModel = (string)v;
+            if (props.TryGetValue("PointModel", out v))
+                PointModel = (string)v;
+        }
+    }
+    /// <summary>
+    /// Number of lines for this actor, they will be drawn as equal divisions of a circle (3 lines -> 120º between each)
+    /// Value of the arg -> line count
+    /// </summary>
+    public class RotateCoreSides : BaseArg
+    {
+        
+    }
+    /// <summary>
+    /// Actor that is separate from the origin by a given length
+    /// Arg value -> Length
+    /// </summary>
+    public class SwingingCore : BaseArg
+    {
+        // public Vector3 HeadOffset { get; set; }
+        public string HeadModel { get; set; }
+        public string ChainModel { get; set; }
+        public bool? TwoChains { get; set; }
+        public Vector3? ChainDistance { get; set; }
+        public SwingingCore(Dictionary<string, object> props)
+        {
+            object? v;
+            if (props.TryGetValue("HeadModel", out v))
+                HeadModel = (string)v;
+            if (props.TryGetValue("ChainModel", out v))
+                ChainModel = (string)v;
+            if (props.TryGetValue("TwoChains", out v))
+                TwoChains = (bool)v;
+        }
+    }
+
+
+    /// <summary>
     /// Converts the X Y Z dictionary to a Vector3, assumes the dictionary is formatted properly
     /// </summary>
     /// <param name="o"></param>
     /// <returns></returns>
     public static Vector3 FromDict(Dictionary<object, object> o) => new Vector3(Convert.ToSingle(o["X"]), Convert.ToSingle(o["Y"]), Convert.ToSingle(o["Z"])); 
 
-    private static SortedDictionary<string, ModifierBase>? s_ModifierEntries = null;
-
+    private static SortedDictionary<string, ModifierBase>? s_ModifierEntries = null; // ClassName / Entry 
+    public static bool ReloadEntries = false;
     public static SortedDictionary<string, ModifierBase> ModifierEntries
     {
         get
@@ -125,51 +217,13 @@ internal static class ClassModifiersWrapper
                     ModifierBase entry = YAMLWrapper.Deserialize<ModifierBase>(entryPath);
                     if (entry.Default != null && entry.Default.Value.Args != null)
                     {
-                        var vl = entry.Default.Value;
-                        vl.ArgsRem = new();
-                        entry.Default = vl;
-                        foreach (string k in entry.Default.Value.Args.Keys)
-                        {
-                            BaseArg arg;
-                            switch (entry.Default.Value.Args[k].ArgType)
-                            {
-                                case ArgType.Tower:
-                                    arg = new TowerArg(entry.Default.Value.Args[k].Properties);
-                                break;
-                                case ArgType.AnimChange:
-                                    arg = new AnimChangeArg(entry.Default.Value.Args[k].Properties);
-                                break;
-                                default:
-                                    arg = new SimpleArg();
-                                break;
-                            }
-                            entry.Default.Value.ArgsRem.Add(k, arg);
-                        }
+                        entry.Default = SetEntryArgs(entry.Default.Value, path);
                     }
                     if (entry.Variants != null)
                     foreach (string ent in entry.Variants.Keys)
                     {           
                         if (entry.Variants[ent]!.Args == null) continue;
-                        var vl = entry.Variants[ent]!;
-                        vl.ArgsRem = new();
-                        entry.Variants[ent] = vl;
-                        foreach (string k in entry.Variants[ent]!.Args!.Keys)
-                        {
-                            BaseArg arg;
-                            switch (entry.Variants[ent]!.Args![k].ArgType)
-                            {
-                                case ArgType.Tower:
-                                    arg = new TowerArg(entry.Variants[ent]!.Args![k].Properties);
-                                break;
-                                case ArgType.AnimChange:
-                                    arg = new AnimChangeArg(entry.Variants[ent]!.Args![k].Properties);
-                                break;
-                                default:
-                                    arg = new SimpleArg();
-                                break;
-                            }
-                            entry.Variants[ent]!.ArgsRem!.Add(k, arg);
-                        }
+                        entry.Variants[ent] = SetEntryArgs(entry.Variants[ent], path);
                     }
                     s_ModifierEntries[Path.GetFileNameWithoutExtension(entryPath)] = entry;
                 }
@@ -179,8 +233,6 @@ internal static class ClassModifiersWrapper
             return s_ModifierEntries;
         }
     }
-
-    public static bool ReloadEntries = false;
 
     public static ModifierEntry? GetEntry(string actorName, string className)
     {
@@ -196,5 +248,33 @@ internal static class ClassModifiersWrapper
         else
             return null;
     }
+
+    private static ModifierEntry SetEntryArgs(ModifierEntry entry, string path)
+    {
+        entry.ArgsRem = [];
+        foreach (string k in entry.Args!.Keys)
+        {
+            try
+            {
+                BaseArg arg = entry.Args[k].ArgType switch
+                {
+                    ArgType.Tower => new TowerArg(entry.Args[k].Properties),
+                    ArgType.AnimChange => new AnimChangeArg(entry.Args[k].Properties),
+                    ArgType.RotateCoreCount => new RotateCoreAmount(entry.Args[k].Properties),
+                    ArgType.RotateCoreSides => new RotateCoreSides(),
+                    ArgType.SwingCoreLength => new SwingingCore(entry.Args[k].Properties),
+                    ArgType.AddExtraModel => new ExtraArgModels(entry.Args[k].Properties),
+                    _ => new SimpleArg(),
+                };
+                entry.ArgsRem.Add(k, arg);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"{e.Message} while reading Arg ${k} of entry {Path.GetFileName(path)}");
+            }
+        }
+        return entry;
+    }
+
 
 }
