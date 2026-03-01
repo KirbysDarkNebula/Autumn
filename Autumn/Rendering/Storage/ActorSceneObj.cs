@@ -69,6 +69,7 @@ internal class ActorSceneObj : IStageSceneObj
         fsHandler.ReadCreatorClassNameTable().TryGetValue(actorName, out string? actorClass);
 
         Actor = fsHandler.ReadActorNew(actorName, actorClass, scheduler);
+        AABB = Actor.AABB;
 
         if (actorClass != null && ClassModifiersWrapper.ModifierEntries.ContainsKey(actorClass)) 
         {
@@ -100,10 +101,17 @@ internal class ActorSceneObj : IStageSceneObj
                         BaseSubActorCount += 1;
                     }
                 }
+
+                if (act.Value.Args != null)
+                foreach (string arg in act.Value.Args.Keys)
+                {
+                    if (StageObj.Properties.ContainsKey(arg))
+                    {
+                        UpdateActorFromArg(fsHandler, (ClassModifiersWrapper.ModifierEntry)act, arg, scheduler);
+                    }
+                }
             }
         }
-
-        
 
         scheduler.EnqueueGLTask( gl => 
             {
@@ -228,7 +236,7 @@ internal class ActorSceneObj : IStageSceneObj
                 end = SubActors.Count + BaseSubActorCount;
                 if ((int)StageObj.Properties[arg]! == -1)
                 {
-                    for (int i = BaseSubActorCount; i < end; i++)
+                    for (int i = end-1; i >= BaseSubActorCount; i--)
                     {
                         SubActors.RemoveAt(i);
                         SubActorTransforms.RemoveAt(i);
