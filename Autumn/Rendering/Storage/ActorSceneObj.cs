@@ -205,9 +205,8 @@ internal class ActorSceneObj : IStageSceneObj
                 // Update transforms to the current
                 for (int i = BaseSubActorCount; i < chainCount + BaseSubActorCount; i++)
                 {
-                    SubActorTransforms[i].Translate = - new Vector3(0,50,0) - Vector3.UnitY * ((argval - 300) / (chainCount+1)) + Vector3.UnitY * ((argval - 300) / (chainCount+1)) * -i;
+                    SubActorTransforms[i].Translate = new Vector3(0,(argval - 300) / (chainCount + 1) * (-i-1) - 50, 0);
                 }
-
 
                 // only once?
                 Actor? SubActBall = fsHandler.ReadActorExtrasArg(swLn.HeadModel, scheduler);
@@ -248,6 +247,38 @@ internal class ActorSceneObj : IStageSceneObj
                         }
                     }
                 }
+            break;
+
+            case ArgType.ShadowType:
+                Actor? AddedMdl = (int)StageObj.Properties[arg]! switch
+                    {
+                        1 => fsHandler.ReadActorExtrasArg("ShadowVolumePyramid", scheduler), // Pyramid
+                        2 => fsHandler.ReadActorExtrasArg("ShadowVolumeSphere", scheduler), //Sphere
+                        3 => fsHandler.ReadActorExtrasArg("ShadowVolumeCylinder", scheduler), // Cylinder
+                        4 => fsHandler.ReadActorExtrasArg("ShadowVolumeCone", scheduler), // Cone
+                        _ => fsHandler.ReadActorExtrasArg("ShadowVolumeCube", scheduler), // Cube
+                    };
+                if (AddedMdl is null) return;
+                Actor = AddedMdl;
+                AABB = Actor.AABB * 0.01f;
+                UpdateTransform();
+            break;
+
+            case ArgType.ScaleAxis:
+                var scAx = (ClassModifiersWrapper.ScaleAxis)entry.ArgsRem![arg];
+                switch (scAx.Axis)
+                {
+                    case "X":
+                        DeltaScale.X = (int)StageObj.Properties[arg]!;
+                    break;
+                    case "Y":
+                        DeltaScale.Y = (int)StageObj.Properties[arg]!;
+                    break;
+                    case "Z":
+                        DeltaScale.Z = (int)StageObj.Properties[arg]!;
+                    break;
+                }
+                UpdateTransform();
             break;
 
             default:

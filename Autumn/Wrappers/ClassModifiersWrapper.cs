@@ -187,6 +187,21 @@ internal static class ClassModifiersWrapper
                 TwoChains = (bool)v;
         }
     }
+    public class ShadowType : BaseArg
+    {
+
+    }
+    public class ScaleAxis : BaseArg
+    {
+        // public Vector3 HeadOffset { get; set; }
+        public string Axis { get; set; }
+        public ScaleAxis(Dictionary<string, object> props)
+        {
+            object? v;
+            if (props.TryGetValue("Axis", out v))
+                Axis = (string)v;
+        }
+    }
 
 
     /// <summary>
@@ -264,6 +279,8 @@ internal static class ClassModifiersWrapper
                     ArgType.RotateCoreSides => new RotateCoreSides(),
                     ArgType.SwingCoreLength => new SwingingCore(entry.Args[k].Properties),
                     ArgType.AddExtraModel => new ExtraArgModels(entry.Args[k].Properties),
+                    ArgType.ShadowType => new ShadowType(),
+                    ArgType.ScaleAxis => new ScaleAxis(entry.Args[k].Properties),
                     _ => new SimpleArg(),
                 };
                 entry.ArgsRem.Add(k, arg);
