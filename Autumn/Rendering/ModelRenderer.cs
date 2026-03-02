@@ -439,9 +439,80 @@ internal static class ModelRenderer
             }
             l.Reverse();
             m.Reverse();
-            if (actorSceneObj.Actor.Name == "UsefulRuinMountain") 
+            if (actorSceneObj.StageObj.Name == "ShadowObj")
             {
-                //Debug.Assert(true);
+                for (int h = 0; h < m.Count; h++)
+                {
+                    var material = m[h];
+                    var mesh = l[h];
+                    material.SetMatrices(s_projectionMatrix, actorSceneObj.Transform, s_viewMatrix);
+                    material.SetSelectionColor(new(s_highlightColor, actorSceneObj.Selected ? 0.4f : -1f));
+
+                    if (!material.TryUse(gl, out ProgramUniformScope scope))
+                        continue;
+
+                    using (scope)
+                    {
+                        if (material.CullFaceMode == TriangleFace.FrontAndBack)
+                            gl.Disable(EnableCap.CullFace);
+                        else
+                            gl.CullFace(material.CullFaceMode);
+
+                        gl.Enable(EnableCap.Blend);// Attempt at Fog rendering
+
+                        gl.BlendColor(
+                            material.BlendingColor.X,
+                            material.BlendingColor.Y,
+                            material.BlendingColor.Z,
+                            material.BlendingColor.W
+                        );
+
+                        gl.BlendEquationSeparate(BlendEquationModeEXT.Max, BlendEquationModeEXT.Max);//material.AlphaBlendEquation);
+
+                        gl.BlendFuncSeparate(
+                            BlendingFactor.SrcColor,
+                            BlendingFactor.DstColor,
+                            BlendingFactor.One,
+                            BlendingFactor.One
+                        );
+                        gl.StencilFunc(material.StencilFunction, material.StencilRef, material.StencilMask);
+
+                        gl.StencilMask(material.StencilBufferMask);
+
+                        gl.StencilOp(material.StencilOps[0], material.StencilOps[1], material.StencilOps[2]);
+
+                        gl.DepthFunc(material.DepthFunction);//h == 0 ? DepthFunction.Greater : DepthFunction.Less);
+                        gl.DepthMask(material.DepthMaskEnabled);
+
+                        gl.ColorMask(
+                            material.ColorMask[0],
+                            material.ColorMask[1],
+                            material.ColorMask[2],
+                            material.ColorMask[3]
+                        );
+
+                        if (material.PolygonOffsetFillEnabled)
+                        {
+                            gl.Enable(EnableCap.PolygonOffsetFill);
+                            gl.PolygonOffset(0, material.PolygonOffsetUnit);
+                        }
+
+                        material.Program.TryGetUniformLoc("uPickingId", out int location);
+                        gl.Uniform1(location, actorSceneObj.PickingId);
+                        material.Program.TryGetUniformLoc("uShadow", out int location2);
+                        if (h == 0)
+                            gl.Uniform4(location2, new Vector4(1,1,0,0));
+                        else
+                            gl.Uniform4(location2, new Vector4(0,1,0,1));
+
+                        mesh.Draw();
+
+                        gl.Enable(EnableCap.CullFace);
+                        gl.Disable(EnableCap.PolygonOffsetFill);
+                        gl.Disable(EnableCap.Blend);
+                    }
+                }
+                return;
             }
             // Console.WriteLine(actorSceneObj.StageObj.Translation);
             // Console.WriteLine(scn.Camera.Eye);

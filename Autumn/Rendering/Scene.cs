@@ -80,8 +80,11 @@ internal class Scene
 
         if (ModelRenderer.UseFullAlphaPipeline)
         {
+            List<ActorSceneObj> Shadows = new();
             foreach (ISceneObj o in Opaque)
             {
+                if (o is ActorSceneObj obj && obj.StageObj.Name == "ShadowObj") { Shadows.Add(obj); continue; }
+
                 ModelRenderer.DrawLayer(window.GL!, o, this, H3DMeshLayer.Opaque);
             }
 
@@ -101,6 +104,11 @@ internal class Scene
             {
                 ModelRenderer.DrawLayer(window.GL!, o, this, H3DMeshLayer.Additive);
             }
+            foreach (ActorSceneObj sh in Shadows)
+            {
+                ModelRenderer.DrawLayer(window.GL!, sh, this, H3DMeshLayer.Opaque);
+            }
+
             foreach (ISceneObj o in EnumerateSceneObjs())
             {
                 if (o is not ActorSceneObj) continue;

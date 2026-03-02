@@ -27,6 +27,7 @@ internal class MainWindowContext : WindowContext
 
     public SceneGL.GLWrappers.Framebuffer SceneFramebuffer { get; }
     public SceneGL.GLWrappers.Framebuffer CameraFramebuffer { get; }
+    public SceneGL.GLWrappers.Framebuffer ExtraFB { get; }
 
     public BackgroundManager BackgroundManager { get; } = new();
     public GLTaskScheduler GLTaskScheduler { get; } = new();
@@ -110,11 +111,17 @@ internal class MainWindowContext : WindowContext
             initialSize: null,
             depthAttachment: SceneGL.PixelFormat.D24_UNorm_S8_UInt,
             SceneGL.PixelFormat.R8_G8_B8_A8_UNorm, // Regular color.
-            SceneGL.PixelFormat.R32_UInt // Used for object selection.
+            SceneGL.PixelFormat.R32_UInt, // Used for object selection.
+            SceneGL.PixelFormat.R8_G8_B8_A8_UNorm // Extra object information
         );
         CameraFramebuffer = new(
             initialSize: null,
             depthAttachment: SceneGL.PixelFormat.D24_UNorm_S8_UInt,
+            SceneGL.PixelFormat.R8_G8_B8_A8_UNorm // Regular color.
+        );
+        ExtraFB = new(
+            initialSize: null,
+            depthAttachment: null,
             SceneGL.PixelFormat.R8_G8_B8_A8_UNorm // Regular color.
         );
 
@@ -124,6 +131,7 @@ internal class MainWindowContext : WindowContext
             RailRenderer.Initialize(GL!);
             RelationLine.Initialize(GL!);
             ModelRenderer.Initialize(GL!, contextHandler.FSHandler);
+            Canvas.CanvasRenderer.Initialize(GL!);
             _propertiesWindow.Initialize(windowManager);
 
             var cubeTex = Image.Load<Rgba32>(Path.Join("Resources", "OrientationCubeTex.png"));
