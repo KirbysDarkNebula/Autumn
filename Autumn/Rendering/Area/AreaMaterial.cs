@@ -56,8 +56,9 @@ internal static class AreaMaterial
 
             out vec4 oColor;
             out uint oPickingId;
+            out uint oPostProc;
 
-            void main() {                
+            void main() {
                 vec3 absolute = abs(vPos);
                 vec3 scale = vec3(  length(vec3(vTrans[0][0], vTrans[1][0], vTrans[2][0])),
                                     length(vec3(vTrans[0][1], vTrans[1][1], vTrans[2][1])), 
@@ -89,6 +90,7 @@ internal static class AreaMaterial
                 oColor.rgb += vec3(clamp(outline * 0.5 - 0.12,0,1));
                 oColor.a = 1.0;
                 oPickingId = uPickingId;
+                oPostProc = 0u + (uHighlightColor.a > 0.1 ? 1u : 0u) << 2u;
             }
             """
         );

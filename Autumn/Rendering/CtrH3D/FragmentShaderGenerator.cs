@@ -133,15 +133,15 @@ internal class FragmentShaderGenerator
         SB.AppendLine();
         SB.AppendLine("out vec4 Output;");
         SB.AppendLine("out uint oPickingId;");
-        SB.AppendLine("out uint oShadow;");
+        SB.AppendLine("out uint oPostProc;");
         SB.AppendLine();
         SB.AppendLine("//SPICA auto-generated Fragment Shader");
         SB.AppendLine();
         SB.AppendLine("void main() {");
         SB.AppendLine();
         SB.AppendLine("    oPickingId = uPickingId;");
-        SB.AppendLine("    oShadow = uShadow;");
-        SB.AppendLine($"    oShadow += ({SelectionUniform}.a > 0.1 ? 1 : 0) << 2;");
+        SB.AppendLine("    oPostProc = uShadow;");
+        SB.AppendLine($"    oPostProc += ({SelectionUniform}.a > 0.1 ? 1 : 0) << 2;");
 
         SB.AppendLine("    vec4 Previous;");
         SB.AppendLine("    vec4 DebugDist0;");
@@ -412,7 +412,7 @@ internal class FragmentShaderGenerator
         {
             SB.AppendLine("Output.a = 1;");
         }
-        // SB.AppendLine($"   oShadow.a = Output.a > 0.1 ? 1 : 0;");
+        // SB.AppendLine($"   oPostProc.a = Output.a > 0.1 ? 1 : 0;");
 
         
         SB.AppendLine("}");

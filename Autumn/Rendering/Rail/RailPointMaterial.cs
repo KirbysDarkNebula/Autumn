@@ -53,9 +53,11 @@ internal static class RailPointMaterial
 
             out vec4 oColor;
             out uint oPickingId;
+            out uint oPostProc;
 
             void main() {
                 oPickingId = uPickingId;
+                oPostProc = 0u + (uHighlightColor.a > 0.1 ? 1u : 0u) << 2u;
                 
                 vec3 absolute = abs(vPos);
 

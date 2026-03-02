@@ -441,6 +441,8 @@ internal static class ModelRenderer
             m.Reverse();
             if (actorSceneObj.StageObj.Name == "ShadowObj")
             {
+                l.Reverse();
+                m.Reverse();
                 for (int h = 0; h < m.Count; h++)
                 {
                     var material = m[h];
@@ -482,7 +484,7 @@ internal static class ModelRenderer
                         gl.StencilOp(material.StencilOps[0], material.StencilOps[1], material.StencilOps[2]);
 
                         gl.DepthFunc(material.DepthFunction);//h == 0 ? DepthFunction.Greater : DepthFunction.Less);
-                        gl.DepthMask(material.DepthMaskEnabled);
+                        gl.DepthMask(h == 1 ? material.DepthMaskEnabled : false);
 
                         gl.ColorMask(
                             material.ColorMask[0],
@@ -500,10 +502,8 @@ internal static class ModelRenderer
                         material.Program.TryGetUniformLoc("uPickingId", out int location);
                         gl.Uniform1(location, actorSceneObj.PickingId);
                         material.Program.TryGetUniformLoc("uShadow", out int location2);
-                        if (h == 0)
-                            gl.Uniform4(location2, new Vector4(1,1,0,0));
-                        else
-                            gl.Uniform4(location2, new Vector4(0,1,0,1));
+                        gl.Uniform1(location2, h == 0 ? 1u : 2u);
+
 
                         mesh.Draw();
 

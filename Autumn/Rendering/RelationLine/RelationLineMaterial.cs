@@ -100,9 +100,11 @@ internal static class RelationLineMaterial
 
             out vec4 oColor;
             out uint oPickingId;
+            out uint oPostProc;
 
             void main() {
                 oPickingId = uPickingId;
+                oPostProc = 0u;
 
                 oColor = uColor;
                 oColor.rgb = mix(oColor.rgb, uHighlightColor.rgb, uHighlightColor.a);
