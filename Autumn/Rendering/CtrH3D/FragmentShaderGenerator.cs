@@ -121,7 +121,7 @@ internal class FragmentShaderGenerator
         SB.AppendLine($"uniform int {DebugLUTModeUniform};");
         SB.AppendLine();
         SB.AppendLine("uniform uint uPickingId;");
-        SB.AppendLine("uniform vec4 uShadow;");
+        SB.AppendLine("uniform uint uShadow;");
 
         SB.AppendLine();
         SB.AppendLine($"in vec4 {ShaderOutputRegName.QuatNormal};");
@@ -133,7 +133,7 @@ internal class FragmentShaderGenerator
         SB.AppendLine();
         SB.AppendLine("out vec4 Output;");
         SB.AppendLine("out uint oPickingId;");
-        SB.AppendLine("out vec4 oShadow;");
+        SB.AppendLine("out uint oShadow;");
         SB.AppendLine();
         SB.AppendLine("//SPICA auto-generated Fragment Shader");
         SB.AppendLine();
@@ -141,7 +141,7 @@ internal class FragmentShaderGenerator
         SB.AppendLine();
         SB.AppendLine("    oPickingId = uPickingId;");
         SB.AppendLine("    oShadow = uShadow;");
-        SB.AppendLine($"    oShadow.b = {SelectionUniform}.a;");
+        SB.AppendLine($"    oShadow += ({SelectionUniform}.a > 0.1 ? 1 : 0) << 2;");
 
         SB.AppendLine("    vec4 Previous;");
         SB.AppendLine("    vec4 DebugDist0;");
@@ -410,9 +410,9 @@ internal class FragmentShaderGenerator
 
         if (Params.RenderLayer == (int)H3DMeshLayer.Opaque)
         {
-            SB.AppendLine("Output.a = uShadow.g > 0.1 ? 0 : 1;");
+            SB.AppendLine("Output.a = 1;");
         }
-        SB.AppendLine($"   oShadow.a = Output.a > 0.1 ? 1 : 0;");
+        // SB.AppendLine($"   oShadow.a = Output.a > 0.1 ? 1 : 0;");
 
         
         SB.AppendLine("}");

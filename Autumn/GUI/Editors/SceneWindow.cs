@@ -218,12 +218,12 @@ internal class SceneWindow(MainWindowContext window)
         window.SceneFramebuffer.SetSize((uint)contentAvail.X, (uint)contentAvail.Y);
         window.SceneFramebuffer.Create(window.GL!);
 
-        window.ExtraFB.SetSize((uint)contentAvail.X, (uint)contentAvail.Y);
-        window.ExtraFB.Create(window.GL!);
+        window.ExtrasFrameBuffer.SetSize((uint)contentAvail.X, (uint)contentAvail.Y);
+        window.ExtrasFrameBuffer.Create(window.GL!);
 
         Vector2 imPos = ImGui.GetCursorPos();
         ImGui.Image(
-            new IntPtr(window.ExtraFB.GetColorTexture(0)),
+            new IntPtr(window.ExtrasFrameBuffer.GetColorTexture(0)),
             contentAvail,
             new Vector2(0, 1),
             new Vector2(1, 0)
@@ -815,7 +815,7 @@ internal class SceneWindow(MainWindowContext window)
             }
         }
 
-        window.ExtraFB.Use(window.GL!);
+        window.ExtrasFrameBuffer.Use(window.GL!);
         window.GL!.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
         Canvas.CanvasRenderer.Render(window.GL!, window.SceneFramebuffer);
         

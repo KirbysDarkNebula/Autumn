@@ -27,7 +27,7 @@ internal class MainWindowContext : WindowContext
 
     public SceneGL.GLWrappers.Framebuffer SceneFramebuffer { get; }
     public SceneGL.GLWrappers.Framebuffer CameraFramebuffer { get; }
-    public SceneGL.GLWrappers.Framebuffer ExtraFB { get; }
+    public SceneGL.GLWrappers.Framebuffer ExtrasFrameBuffer { get; }
 
     public BackgroundManager BackgroundManager { get; } = new();
     public GLTaskScheduler GLTaskScheduler { get; } = new();
@@ -112,17 +112,21 @@ internal class MainWindowContext : WindowContext
             depthAttachment: SceneGL.PixelFormat.D24_UNorm_S8_UInt,
             SceneGL.PixelFormat.R8_G8_B8_A8_UNorm, // Regular color.
             SceneGL.PixelFormat.R32_UInt, // Used for object selection.
-            SceneGL.PixelFormat.R8_G8_B8_A8_UNorm // Extra object information
+            SceneGL.PixelFormat.R8_UInt // Regular color. 
+            // 7 6 5 4 3 2 1 0
+            // 0 -> shadow base
+            // 1 -> shadow remove -> final shadow check
+            // 2 -> isSelected
         );
         CameraFramebuffer = new(
             initialSize: null,
             depthAttachment: SceneGL.PixelFormat.D24_UNorm_S8_UInt,
             SceneGL.PixelFormat.R8_G8_B8_A8_UNorm // Regular color.
         );
-        ExtraFB = new(
+        ExtrasFrameBuffer = new(
             initialSize: null,
             depthAttachment: null,
-            SceneGL.PixelFormat.R8_G8_B8_A8_UNorm // Regular color.
+            SceneGL.PixelFormat.R8_G8_B8_A8_UNorm  // final color
         );
 
         Window.Load += () =>
