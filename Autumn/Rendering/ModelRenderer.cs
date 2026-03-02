@@ -53,6 +53,7 @@ internal static class ModelRenderer
     public static bool VisibleRelationLines = true;
     
     public static bool UseFullAlphaPipeline = true;
+    public static bool UsePostProcessing = true;
 
     public static void Initialize(GL gl, LayeredFSHandler fsHandler)
     {

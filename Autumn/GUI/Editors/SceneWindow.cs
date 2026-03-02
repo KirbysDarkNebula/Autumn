@@ -217,13 +217,14 @@ internal class SceneWindow(MainWindowContext window)
 
         window.SceneFramebuffer.SetSize((uint)contentAvail.X, (uint)contentAvail.Y);
         window.SceneFramebuffer.Create(window.GL!);
-
-        window.ExtrasFrameBuffer.SetSize((uint)contentAvail.X, (uint)contentAvail.Y);
-        window.ExtrasFrameBuffer.Create(window.GL!);
-
+        if (ModelRenderer.UsePostProcessing)
+        {
+            window.ExtrasFrameBuffer.SetSize((uint)contentAvail.X, (uint)contentAvail.Y);
+            window.ExtrasFrameBuffer.Create(window.GL!);
+        }
         Vector2 imPos = ImGui.GetCursorPos();
         ImGui.Image(
-            new IntPtr(window.ExtrasFrameBuffer.GetColorTexture(0)),
+            new IntPtr(ModelRenderer.UsePostProcessing ? window.ExtrasFrameBuffer.GetColorTexture(0) : window.SceneFramebuffer.GetColorTexture(0)),
             contentAvail,
             new Vector2(0, 1),
             new Vector2(1, 0)
@@ -814,11 +815,12 @@ internal class SceneWindow(MainWindowContext window)
                 
             }
         }
-
-        window.ExtrasFrameBuffer.Use(window.GL!);
-        window.GL!.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
-        Canvas.CanvasRenderer.Render(window.GL!, window.SceneFramebuffer);
-        
+        if (ModelRenderer.UsePostProcessing)
+        {
+            window.ExtrasFrameBuffer.Use(window.GL!);
+            window.GL!.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+            Canvas.CanvasRenderer.Render(window.GL!, window.SceneFramebuffer);
+        }
         GizmoButtons(upperRightCorner);
         ActionPanel(contentAvail);
         ActionMenu(deltaSeconds);
@@ -950,8 +952,16 @@ internal class SceneWindow(MainWindowContext window)
         //ImGui.PushFont(window.FontPointers[1]);
         ImGui.PushStyleVar(ImGuiStyleVar.FrameRounding, 0f);
         ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(1, default));
-        float buttons = ImGui.CalcTextSize(IconUtils.GRID).X*5 + 5*11 +12;
+        float buttons = ImGui.CalcTextSize(IconUtils.GRID).X*6 + 6*11 +12;
         ImGui.SetCursorPos(new Vector2(contentAvail.X - buttons, opos.Y - 3f));
+
+
+        if (ImGui.Button(IconUtils.USER))
+        {
+            ModelRenderer.UsePostProcessing = !ModelRenderer.UsePostProcessing;
+        }
+        ImGui.SetItemTooltip($"Post Processing {(ModelRenderer.UsePostProcessing ? "ON" : "OFF")}");
+        ImGui.SameLine();
 
         if (ImGui.Button(IconUtils.GRID))
         {
