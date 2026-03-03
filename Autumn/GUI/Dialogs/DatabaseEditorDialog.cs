@@ -578,7 +578,7 @@ internal class DatabaseEditor(MainWindowContext _window)
             {
                 foreach (string s in _modifiedEntries)
                 {
-                    string pth = Path.Join("Resources", "RedPepper-ClassDataBase", "Data", s + ".yml");
+                    string pth = Path.Join("Resources", "ClassDB", s + ".yml");
                     if (!_dbEntries.ContainsKey(s))
                     {
                         File.Delete(pth); // Erase the files that will no longer be there
