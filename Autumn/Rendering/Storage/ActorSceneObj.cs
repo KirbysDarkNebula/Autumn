@@ -15,6 +15,7 @@ internal class ActorSceneObj : IStageSceneObj
     public Actor Actor { get; set; }
     public List<Actor> SubActors = new(); // Flagpole top, Arg additions, etc
     public List<Transform> SubActorTransforms = new(); //Transform
+    public List<Actor> Shadows = new();
     /// <summary>
     /// Number of subactors this actor has by default, without args
     /// </summary>
@@ -48,6 +49,10 @@ internal class ActorSceneObj : IStageSceneObj
         Vector3 scale = Actor.IsEmptyModel ? StageObj.Scale : (StageObj.Scale * DeltaScale) * 0.01f;
         Transform = MathUtils.CreateTransformWithDelta(StageObj.Translation * 0.01f, DeltaTranslation * 0.01f, scale , StageObj.Rotation + DeltaRotation);
     }
+    public Matrix4x4 GetTransform(Vector3 sc, Vector3 rt, Vector3 tl)
+    {
+        return MathUtils.CreateTransformWithDelta((StageObj.Translation) * 0.01f, tl * 0.01f, (StageObj.Scale * sc) * 0.01f , StageObj.Rotation + rt + DeltaRotation);
+    }
 
     public void UpdateActor(LayeredFSHandler fsHandler, Scene scn, GLTaskScheduler scheduler)
     {
@@ -65,6 +70,8 @@ internal class ActorSceneObj : IStageSceneObj
         DeltaRotation = Vector3.Zero;
         SubActors.Clear();
         SubActorTransforms.Clear();
+        Shadows.Clear();
+
 
         fsHandler.ReadCreatorClassNameTable().TryGetValue(actorName, out string? actorClass);
 
@@ -112,6 +119,14 @@ internal class ActorSceneObj : IStageSceneObj
                 }
             }
         }
+        if (StageObj.Name == "ShadowObj")
+        {
+            Actor.IsShadowModel = true;
+        }
+        foreach (ActorShadow shadow in Actor.InitShadow)
+        {
+            Shadows.Add( fsHandler.ReadActor( shadow.GetShadowVolumeString(), scheduler));
+        }
 
         scheduler.EnqueueGLTask( gl => 
             {
@@ -119,7 +134,9 @@ internal class ActorSceneObj : IStageSceneObj
                 scn.Translucent.Remove(this);
                 scn.Subtractive.Remove(this);
                 scn.Additive.Remove(this);
+                scn.Shadows.Remove(this);
                 if (Actor.IsEmptyModel) scn.Opaque.Add(this);
+                else if (Actor.IsShadowModel) scn.Shadows.Add(this);
                 else
                 {
                     if (Actor.CountMeshesLayer(H3DMeshLayer.Opaque) > 0) scn.Opaque.Add(this);
@@ -260,13 +277,14 @@ internal class ActorSceneObj : IStageSceneObj
             case ArgType.ShadowType:
                 Actor? AddedMdl = (int)StageObj.Properties[arg]! switch
                     {
-                        1 => fsHandler.ReadActorExtrasArg("ShadowVolumePyramid", scheduler), // Pyramid
-                        2 => fsHandler.ReadActorExtrasArg("ShadowVolumeSphere", scheduler), //Sphere
-                        3 => fsHandler.ReadActorExtrasArg("ShadowVolumeCylinder", scheduler), // Cylinder
-                        4 => fsHandler.ReadActorExtrasArg("ShadowVolumeCone", scheduler), // Cone
-                        _ => fsHandler.ReadActorExtrasArg("ShadowVolumeCube", scheduler), // Cube
+                        1 => fsHandler.ReadActorExtrasArg(ActorShadow.GetShadowVolumeString(ActorShadow.VolumeType.Pyramid), scheduler), // Pyramid
+                        2 => fsHandler.ReadActorExtrasArg(ActorShadow.GetShadowVolumeString(ActorShadow.VolumeType.Sphere), scheduler), //Sphere
+                        3 => fsHandler.ReadActorExtrasArg(ActorShadow.GetShadowVolumeString(ActorShadow.VolumeType.Cylinder), scheduler), // Cylinder
+                        4 => fsHandler.ReadActorExtrasArg(ActorShadow.GetShadowVolumeString(ActorShadow.VolumeType.Cone), scheduler), // Cone
+                        _ => fsHandler.ReadActorExtrasArg(ActorShadow.GetShadowVolumeString(ActorShadow.VolumeType.Cube), scheduler), // Cube
                     };
                 if (AddedMdl is null) return;
+                Actor.ForceModelNotEmpty(); 
                 Actor = AddedMdl;
                 AABB = Actor.AABB * 0.01f;
                 UpdateTransform();

@@ -40,8 +40,11 @@ internal static class Canvas
 
             in vec2 TexCoords;
 
-            uniform usampler2D FgTexture;
+            uniform sampler2D FgTexture;
             uniform sampler2D BgTexture;
+
+            uniform uint uBools;
+            // first bit -> outline enabled
 
             out vec4 FragColor;
 
@@ -49,41 +52,43 @@ internal static class Canvas
             void main()
             {
                 FragColor = texture(BgTexture, TexCoords);
-                uint tx = texture(FgTexture, TexCoords).r;
-                if ((tx & 3u) == 1u)
+                vec4 tx2 = texture(FgTexture, TexCoords);
+                if (tx2.g * 2 < tx2.b)
                     FragColor *= 0.6;
-                vec2 offsets[9] = vec2[](
-                    vec2(-offset,  offset), // top-left
-                    vec2( 0.0f,    offset), // top-center
-                    vec2( offset,  offset), // top-right
-                    vec2(-offset,  0.0f),   // center-left
-                    vec2( 0.0f,    0.0f),   // center-center
-                    vec2( offset,  0.0f),   // center-right
-                    vec2(-offset, -offset), // bottom-left
-                    vec2( 0.0f,   -offset), // bottom-center
-                    vec2( offset, -offset)  // bottom-right    
-                );
+                if ((uBools & 1u) == 1u)
+                {
+                    vec2 offsets[9] = vec2[](
+                        vec2(-offset,  offset), // top-left
+                        vec2( 0.0f,    offset), // top-center
+                        vec2( offset,  offset), // top-right
+                        vec2(-offset,  0.0f),   // center-left
+                        vec2( 0.0f,    0.0f),   // center-center
+                        vec2( offset,  0.0f),   // center-right
+                        vec2(-offset, -offset), // bottom-left
+                        vec2( 0.0f,   -offset), // bottom-center
+                        vec2( offset, -offset)  // bottom-right    
+                    );
 
-                float kernel[9] = float[](
-                    2, 2, 2,
-                    2, -22, 2,
-                    2, 2, 2
-                );
-                uint hasSelection = 0u;
-                vec3 sampleTex[9];
-                for(int i = 0; i < 9; i++)
-                {
-                    uint t = texture(FgTexture, TexCoords.st + offsets[i]).r;
-                    sampleTex[i] = vec3(t);
-                    hasSelection += (((t & 4u) == 4u && (t != 255u)) ? 1u : 0u);
-                }
-                if (hasSelection > 1u)
-                {
-                    vec3 col = vec3(0.0);
+                    float kernel[9] = float[](
+                        2, 2, 2,
+                        2, -22, 2,
+                        2, 2, 2
+                    );
+                    float hasSelection = 0;
+                    vec3 sampleTex[9];
                     for(int i = 0; i < 9; i++)
-                        col += sampleTex[i] * kernel[i];
-                    
-                    FragColor.rgb += clamp(col, vec3(0), vec3(1));
+                    {
+                        sampleTex[i] = vec3(texture(FgTexture, TexCoords.st + offsets[i]).r);
+                        hasSelection += (texture(FgTexture, TexCoords.st + offsets[i]).r > 0.3 ? 1 : 0);
+                    }
+                    if (hasSelection > 0.5)
+                    {
+                        vec3 col = vec3(0.0);
+                        for(int i = 0; i < 9; i++)
+                            col += sampleTex[i] * kernel[i];
+                        
+                        FragColor.rgb += clamp(col, vec3(0), vec3(1));
+                    }
                 }
             }
             """
@@ -130,6 +135,7 @@ internal static class Canvas
             CreateTextureSamplerA(gl);
             samplerBindings.Add(new ("STexture", 0, 0));
             samplerBindings.Add(new ("STexture2", 0, 0));
+            samplerBindings.Add(new ("STexture3", 0, 0));
         }
         public static RenderableModel GenerateCanvas(GL gl)
         {
@@ -152,7 +158,7 @@ internal static class Canvas
         }
 
 
-        public static void Render(GL gl, SceneGL.GLWrappers.Framebuffer basis)
+        public static void Render(GL gl, bool enableOutline, SceneGL.GLWrappers.Framebuffer basis)
         {
             if (HasToReset) 
             {
@@ -165,6 +171,9 @@ internal static class Canvas
             using (scope)
             {
                 gl.Disable(EnableCap.CullFace);
+                if (Program.TryGetUniformLoc("uBools", out int location))
+                    gl.Uniform1(location, enableOutline ? 1u : 0u);
+                
                 s_model!.Draw(gl);
                 gl.Enable(EnableCap.CullFace);
             }

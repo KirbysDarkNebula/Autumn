@@ -217,14 +217,14 @@ internal class SceneWindow(MainWindowContext window)
 
         window.SceneFramebuffer.SetSize((uint)contentAvail.X, (uint)contentAvail.Y);
         window.SceneFramebuffer.Create(window.GL!);
-        if (ModelRenderer.UsePostProcessing)
+        if (window.ContextHandler.SystemSettings.EXPERIMENTAL_PostProcess)
         {
             window.ExtrasFrameBuffer.SetSize((uint)contentAvail.X, (uint)contentAvail.Y);
             window.ExtrasFrameBuffer.Create(window.GL!);
         }
         Vector2 imPos = ImGui.GetCursorPos();
         ImGui.Image(
-            new IntPtr(ModelRenderer.UsePostProcessing ? window.ExtrasFrameBuffer.GetColorTexture(0) : window.SceneFramebuffer.GetColorTexture(0)),
+            new IntPtr(window.ContextHandler.SystemSettings.EXPERIMENTAL_PostProcess ? window.ExtrasFrameBuffer.GetColorTexture(0) : window.SceneFramebuffer.GetColorTexture(0)),
             contentAvail,
             new Vector2(0, 1),
             new Vector2(1, 0)
@@ -815,11 +815,11 @@ internal class SceneWindow(MainWindowContext window)
                 
             }
         }
-        if (ModelRenderer.UsePostProcessing)
+        if (window.ContextHandler.SystemSettings.EXPERIMENTAL_PostProcess)
         {
             window.ExtrasFrameBuffer.Use(window.GL!);
             window.GL!.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
-            Canvas.CanvasRenderer.Render(window.GL!, window.SceneFramebuffer);
+            Canvas.CanvasRenderer.Render(window.GL!, window.ContextHandler.SystemSettings.EXPERIMENTAL_SelectionOutline, window.SceneFramebuffer);
         }
         GizmoButtons(upperRightCorner);
         ActionPanel(contentAvail);
@@ -958,9 +958,9 @@ internal class SceneWindow(MainWindowContext window)
 
         if (ImGui.Button(IconUtils.USER))
         {
-            ModelRenderer.UsePostProcessing = !ModelRenderer.UsePostProcessing;
+            window.ContextHandler.SystemSettings.EXPERIMENTAL_PostProcess = !window.ContextHandler.SystemSettings.EXPERIMENTAL_PostProcess;
         }
-        ImGui.SetItemTooltip($"Post Processing {(ModelRenderer.UsePostProcessing ? "ON" : "OFF")}");
+        ImGui.SetItemTooltip($"Post Processing {(window.ContextHandler.SystemSettings.EXPERIMENTAL_PostProcess ? "ON" : "OFF")}");
         ImGui.SameLine();
 
         if (ImGui.Button(IconUtils.GRID))

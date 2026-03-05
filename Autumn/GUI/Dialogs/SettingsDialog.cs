@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using Autumn.GUI.Theming;
 using Autumn.GUI.Windows;
@@ -32,6 +33,9 @@ internal class SettingsDialog
     private bool _viewrelationLine = true;
     private int _hoverInfo = 0;
     private int _gizmoPos = 0;
+    private bool EXPERIMENTAL_PostProcess = true;
+    private bool EXPERIMENTAL_SelectionOutline = true;
+    private bool EXPERIMENTAL_ActorShadows = true;
 
     private string[] compressionLevels = Enum.GetNames(typeof(Yaz0Wrapper.CompressionLevel));
     private int _oldTheme = 0;
@@ -76,6 +80,9 @@ internal class SettingsDialog
         _viewrelationLine = _window.ContextHandler.SystemSettings.ShowRelationLines;
         _hoverInfo = (int)_window.ContextHandler.SystemSettings.ShowHoverInfo;
         _gizmoPos = (int)_window.ContextHandler.SystemSettings.GizmoPosition;
+        EXPERIMENTAL_PostProcess = _window.ContextHandler.SystemSettings.EXPERIMENTAL_PostProcess;
+        EXPERIMENTAL_SelectionOutline = _window.ContextHandler.SystemSettings.EXPERIMENTAL_SelectionOutline;
+        EXPERIMENTAL_ActorShadows = _window.ContextHandler.SystemSettings.EXPERIMENTAL_ActorShadows;
 
         ReloadThemes();
     }
@@ -277,6 +284,22 @@ internal class SettingsDialog
                 ImGuiWidgets.HelpTooltip("Shows a line between child objects and their parents");
                 ImGui.EndTabItem();
             }
+
+            #if DEBUG
+            if (ImGui.BeginTabItem("EXPERIMENTAL"))
+            {
+                ImGui.Checkbox("Enable post processing effects", ref EXPERIMENTAL_PostProcess);
+                ImGui.SetItemTooltip("Changes the way the viewport is rendered to enable shadows like the ones ingame and outlines for selected objects.");
+                if (!EXPERIMENTAL_PostProcess) ImGui.BeginDisabled();
+                ImGui.Checkbox("Visible actor shadows", ref EXPERIMENTAL_ActorShadows);
+                ImGui.SetItemTooltip("When enabled, all actors will display shadows (set by InitShadow.byml) not just ShadowObj.\r\nThis setting is marked as experimental because the rendering is buggy.");
+                ImGui.Checkbox("Selection outlines", ref EXPERIMENTAL_SelectionOutline);
+                ImGui.SetItemTooltip("When enabled, selected objects will have an outline around them.");
+                if (!EXPERIMENTAL_PostProcess) ImGui.EndDisabled();
+
+                ImGui.EndTabItem();
+            }
+            #endif
             ImGui.EndTabBar();
         }
         ImGui.SeparatorText("Reset");
@@ -367,6 +390,12 @@ internal class SettingsDialog
             _window.ContextHandler.SystemSettings.ShowRelationLines = _viewrelationLine;
             _window.ContextHandler.SystemSettings.ShowHoverInfo = (Enums.HoverInfoMode)_hoverInfo;
             _window.ContextHandler.SystemSettings.GizmoPosition = (Enums.GizmoPosition)_gizmoPos;
+            
+            _window.ContextHandler.SystemSettings.EXPERIMENTAL_PostProcess = EXPERIMENTAL_PostProcess;
+            _window.ContextHandler.SystemSettings.EXPERIMENTAL_SelectionOutline = EXPERIMENTAL_SelectionOutline;
+            _window.ContextHandler.SystemSettings.EXPERIMENTAL_ActorShadows = EXPERIMENTAL_ActorShadows;
+
+
 
             if (_availableThemes.Count > 0)
                 _window.ContextHandler.SystemSettings.Theme = _availableThemes[_selectedTheme];

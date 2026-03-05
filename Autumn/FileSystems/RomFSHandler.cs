@@ -605,6 +605,34 @@ internal partial class RomFSHandler
                     actor.InitLight.GetType((string)lrt["LightType"].Value!);
             }
         }
+        if (narc.TryGetFile("InitShadow.byml", out byte[] shadows))
+        {
+            BYAML act_sh = BYAMLParser.Read(shadows, s_byamlEncoding);
+            if (act_sh.RootNode.NodeType == BYAMLNodeType.Dictionary)
+            {
+                var srt = act_sh.RootNode.GetValueAs<Dictionary<string, BYAMLNode>>();
+                if (srt!.ContainsKey("Category") && srt["Category"].Value != null)
+                {
+                    if (srt["Category"].NodeType == BYAMLNodeType.String && !string.IsNullOrEmpty((string)srt["Category"].Value!))
+                        Console.WriteLine($"{actor.Name} Shadows Contains actual category");
+                }
+                if (srt!.ContainsKey("Shadows"))
+                {
+                    //Console.WriteLine("Contains Shadows");
+                    var shArr = srt["Shadows"];
+                    if (shArr.NodeType == BYAMLNodeType.Array)
+                    {
+                        BYAMLNode[] shs = shArr.GetValueAs<BYAMLNode[]>()!;
+                        foreach (BYAMLNode shd in shs)
+                        {
+                            if (shd.NodeType is not BYAMLNodeType.Dictionary) continue;
+                            actor.InitShadow.Add(new (shd.GetValueAs<Dictionary<string, BYAMLNode>>()!));
+                        }
+                    }
+                    //srt.TryGetValue("", out BYAMLNode SName)
+                }
+            }
+        }
 
         H3D h3D;
 
@@ -726,6 +754,7 @@ internal partial class RomFSHandler
                         continue;
                     narc!.TryGetFile(s + ".bcmdl", out cgfx);
                     H3D h3D;
+
 
                     try
                     {

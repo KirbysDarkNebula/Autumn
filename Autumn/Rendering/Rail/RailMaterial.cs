@@ -93,11 +93,11 @@ internal static class RailMaterial
 
             out vec4 oColor;
             out uint oPickingId;
-            out uint oPostProc;
+            out vec4 oPostProc;
 
             void main() {
                 oPickingId = uPickingId;
-                oPostProc = 0u + (uHighlightColor.a > 0.1 ? 1u : 0u) << 2u;
+                oPostProc = vec4((uHighlightColor.a > 0.1 ? 1 : 0), 0, 0, 0);
 
                 oColor = uColor;
                 oColor.rgb = mix(oColor.rgb, uHighlightColor.rgb, uHighlightColor.a);

@@ -43,6 +43,20 @@ internal enum ArgType
 
     SwingCoreLength,
     AddExtraModel,
+    /// <summary>
+    /// ShadowObj Model
+    /// </summary>
     ShadowType,
+    /// <summary>
+    /// ShadowObj Scale axis
+    /// </summary>
     ScaleAxis,
+    /// <summary>
+    /// Sets the type of block for this slot of the BlockDragon, when edited it checks for the other args to set the dragon length
+    /// </summary>
+    BlockDragonBlock,
+    /// <summary>
+    /// Sets the object's Y position 
+    /// </summary>
+    PicketHeight,
 }

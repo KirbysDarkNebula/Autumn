@@ -32,6 +32,9 @@ internal class SystemSettings
     public GizmoPosition GizmoPosition = GizmoPosition.First;
     public HoverInfoMode ShowHoverInfo;
     public Yaz0Wrapper.CompressionLevel Yaz0Compression;
+    public bool EXPERIMENTAL_PostProcess = true;
+    public bool EXPERIMENTAL_SelectionOutline = true;
+    public bool EXPERIMENTAL_ActorShadows = true;
 
     public SystemSettings() => Reset();
 

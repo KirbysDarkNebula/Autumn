@@ -63,6 +63,7 @@ internal class Scene
     public List<ActorSceneObj> Translucent = new();
     public List<ActorSceneObj> Subtractive = new();
     public List<ActorSceneObj> Additive = new();
+    public List<ActorSceneObj> Shadows = new();
 
     public Scene(Stage stage, LayeredFSHandler fsHandler, GLTaskScheduler scheduler, ref string status)
     {
@@ -80,13 +81,15 @@ internal class Scene
 
         if (ModelRenderer.UseFullAlphaPipeline)
         {
-            List<ActorSceneObj> Shadows = new();
             foreach (ISceneObj o in Opaque)
             {
-                if (o is ActorSceneObj obj && obj.StageObj.Name == "ShadowObj") { Shadows.Add(obj); continue; }
-
                 ModelRenderer.DrawLayer(window.GL!, o, this, H3DMeshLayer.Opaque);
             }
+            if (!window.ContextHandler.SystemSettings.EXPERIMENTAL_PostProcess)
+                foreach (ActorSceneObj sh in Shadows)
+                {
+                    ModelRenderer.DrawLayer(window.GL!, sh, this, H3DMeshLayer.Opaque);
+                }
 
             // Preemptively sort by distance
             var ey = cameraEye * 100;
@@ -104,16 +107,38 @@ internal class Scene
             {
                 ModelRenderer.DrawLayer(window.GL!, o, this, H3DMeshLayer.Additive);
             }
+            if (window.ContextHandler.SystemSettings.EXPERIMENTAL_PostProcess)
             foreach (ActorSceneObj sh in Shadows)
             {
-                ModelRenderer.DrawLayer(window.GL!, sh, this, H3DMeshLayer.Opaque);
+                ModelRenderer.DrawShadow(window.GL!, sh.Actor, sh.Transform, sh.Selected, sh.PickingId, true);
             }
 
+            List<ActorSceneObj> shsss = new();
             foreach (ISceneObj o in EnumerateSceneObjs())
             {
-                if (o is not ActorSceneObj) continue;
+                if (o is not ActorSceneObj || !o.IsVisible) continue;
                 if ((o as ActorSceneObj)!.StageObj.Parent != null) 
                     ModelRenderer.DrawRelLines(window.GL!, (o as ActorSceneObj)!);
+                if (window.ContextHandler.SystemSettings.EXPERIMENTAL_ActorShadows && window.ContextHandler.SystemSettings.EXPERIMENTAL_PostProcess)
+                    if ((o as ActorSceneObj)!.Shadows.Count > 0)
+                    {
+                        shsss.Add((o as ActorSceneObj)!);
+                    }
+            }
+            if (window.ContextHandler.SystemSettings.EXPERIMENTAL_ActorShadows && window.ContextHandler.SystemSettings.EXPERIMENTAL_PostProcess)
+            {
+                shsss = shsss.OrderBy(x => Vector3.Distance(x.StageObj.Translation, ey)).ToList();
+                shsss.Reverse();
+                foreach (ActorSceneObj o in shsss)
+                {
+                    for (int s = 0; s < o.Shadows.Count; s++)
+                    {
+                        ModelRenderer.DrawShadow(window.GL!, 
+                        o.Shadows[s], 
+                        o.GetTransform(o.Actor.InitShadow[s].Size, o.Actor.InitShadow[s].RotateOffset, o.Actor.InitShadow[s].Offset), 
+                        o.Selected, o.PickingId);
+                    }
+                }
             }
         }
         else
@@ -693,10 +718,19 @@ internal class Scene
                 }
             }
         }
+        if (stageObj.Name == "ShadowObj")
+        {
+            actor.IsShadowModel = true;
+        }
+        foreach (ActorShadow shadow in actor.InitShadow)
+        {
+            actorSceneObj.Shadows.Add( fsHandler.ReadActor( shadow.GetShadowVolumeString(), scheduler));
+        }
 
         scheduler.EnqueueGLTask( gl => 
             {
                 if (actor.IsEmptyModel) Opaque.Add(actorSceneObj);
+                else if (actor.IsShadowModel) Shadows.Add(actorSceneObj);
                 else
                 {
                     if (actor.CountMeshesLayer(H3DMeshLayer.Opaque) > 0) Opaque.Add(actorSceneObj);
@@ -859,6 +893,7 @@ internal class Scene
         if (Opaque.Contains(sceneObj)) Opaque.Remove(sceneObj);
         if (sceneObj is ActorSceneObj)
         {
+            if (Shadows.Contains(sceneObj)) Shadows.Remove((sceneObj as ActorSceneObj)!);
             if (Translucent.Contains(sceneObj)) Translucent.Remove((sceneObj as ActorSceneObj)!);
             if (Additive.Contains(sceneObj)) Additive.Remove((sceneObj as ActorSceneObj)!);
             if (Subtractive.Contains(sceneObj)) Subtractive.Remove((sceneObj as ActorSceneObj)!);

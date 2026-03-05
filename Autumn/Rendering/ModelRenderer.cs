@@ -20,6 +20,7 @@ using Silk.NET.OpenGL;
 using SPICA.Formats.CtrGfx;
 using SPICA.Formats.CtrH3D;
 using SPICA.Formats.CtrH3D.LUT;
+using SPICA.Formats.CtrH3D.Model.Material;
 using static Autumn.Wrappers.ClassModifiersWrapper;
 
 namespace Autumn.Rendering;
@@ -53,7 +54,6 @@ internal static class ModelRenderer
     public static bool VisibleRelationLines = true;
     
     public static bool UseFullAlphaPipeline = true;
-    public static bool UsePostProcessing = true;
 
     public static void Initialize(GL gl, LayeredFSHandler fsHandler)
     {
@@ -311,6 +311,108 @@ internal static class ModelRenderer
             RelationLine.Render(gl, s_commonSceneParams, s_relationParams!, s_relationMaterialParams, actorSceneObj.PickingId, actorSceneObj.StageObj.Translation + actorSceneObj.DeltaTranslation, actorSceneObj.StageObj.Parent.Translation);
         }
     }
+    public static void DrawShadow(GL gl, Actor actor, Matrix4x4 Tr, bool Selected, uint PickId, bool fullActor = false)
+    {       
+            List<H3DRenderingMaterial> m = new();
+            List<H3DRenderingMesh> l = new();
+            List<(H3DRenderingMaterial, H3DRenderingMesh)> lm = new();
+            int c = 0;
+            foreach (var (mesh, material) in actor.EnumerateMeshes())
+            {
+                l.Add(mesh); 
+                m.Add(material);
+                lm.Add((material, mesh));
+                c+= 1;
+            }
+            // lm.OrderBy(x => x.Item1.Name);
+            {
+                if (actor.Name.Contains("ShadowVolumeDokan"))
+                {
+                    lm.Reverse();
+                }
+                for (int h = 0; h < lm.Count; h++)
+                {
+                    var material = lm[h].Item1;
+                    var mesh = lm[h].Item2;
+                    material.SetMatrices(s_projectionMatrix, Tr, s_viewMatrix);
+                    material.SetSelectionColor(new(s_highlightColor, Selected ? 0.4f : -1f));
+
+                    if (!material.TryUse(gl, out ProgramUniformScope scope))
+                        continue;
+
+                    using (scope)
+                    {
+                        if (material.CullFaceMode == TriangleFace.FrontAndBack)
+                            gl.Disable(EnableCap.CullFace);
+                        else
+                            gl.CullFace(material.CullFaceMode);
+
+                        gl.Enable(EnableCap.Blend);// Attempt at Fog rendering
+
+                        gl.BlendColor(
+                            material.BlendingColor.X,
+                            material.BlendingColor.Y,
+                            material.BlendingColor.Z,
+                            material.BlendingColor.W
+                        );
+
+                        gl.BlendEquationSeparate(BlendEquationModeEXT.FuncAdd, BlendEquationModeEXT.FuncAdd);//material.AlphaBlendEquation);
+
+                        gl.BlendFuncSeparate(
+                            BlendingFactor.SrcColor,
+                            BlendingFactor.DstAlpha,
+                            BlendingFactor.One,
+                            BlendingFactor.One
+                        );
+                        gl.StencilFunc(material.StencilFunction, material.StencilRef, material.StencilMask);
+
+                        gl.StencilMask(material.StencilBufferMask);
+
+                        gl.StencilOp(material.StencilOps[0], material.StencilOps[1], material.StencilOps[2]);
+
+                        gl.DepthFunc(material.DepthFunction);//h == 0 ? DepthFunction.Greater : DepthFunction.Less);
+                        gl.DepthMask(h == 1 ? material.DepthMaskEnabled : false);
+
+                        // gl.ColorMask(
+                        //     material.ColorMask[0],
+                        //     material.ColorMask[1],
+                        //     material.ColorMask[2],
+                        //     material.ColorMask[3]
+                        // );
+                        gl.ColorMask(
+                            fullActor,
+                            true,
+                            true,
+                            true
+                        );
+
+                        if (material.PolygonOffsetFillEnabled)
+                        {
+                            gl.Enable(EnableCap.PolygonOffsetFill);
+                            gl.PolygonOffset(0, material.PolygonOffsetUnit);
+                        }
+                        
+                        material.Program.TryGetUniformLoc("uPickingId", out int location);
+                        gl.Uniform1(location, PickId);
+                        material.Program.TryGetUniformLoc("uShadow", out int location2);
+                        gl.Uniform1(location2, h == 0 ? 1u : 2u);
+
+
+                        mesh.Draw();
+
+                        gl.Enable(EnableCap.CullFace);
+                        gl.Disable(EnableCap.PolygonOffsetFill);
+                        gl.Disable(EnableCap.Blend);
+                        gl.ColorMask(
+                            true,
+                            true,
+                            true,
+                            true
+                        );
+                    }
+                }
+            }
+    }
 
     public static void DrawLayer(GL gl, ISceneObj sceneObj, Scene scn, H3DMeshLayer layer)
     {
@@ -440,81 +542,6 @@ internal static class ModelRenderer
             }
             l.Reverse();
             m.Reverse();
-            if (actorSceneObj.StageObj.Name == "ShadowObj")
-            {
-                l.Reverse();
-                m.Reverse();
-                for (int h = 0; h < m.Count; h++)
-                {
-                    var material = m[h];
-                    var mesh = l[h];
-                    material.SetMatrices(s_projectionMatrix, actorSceneObj.Transform, s_viewMatrix);
-                    material.SetSelectionColor(new(s_highlightColor, actorSceneObj.Selected ? 0.4f : -1f));
-
-                    if (!material.TryUse(gl, out ProgramUniformScope scope))
-                        continue;
-
-                    using (scope)
-                    {
-                        if (material.CullFaceMode == TriangleFace.FrontAndBack)
-                            gl.Disable(EnableCap.CullFace);
-                        else
-                            gl.CullFace(material.CullFaceMode);
-
-                        gl.Enable(EnableCap.Blend);// Attempt at Fog rendering
-
-                        gl.BlendColor(
-                            material.BlendingColor.X,
-                            material.BlendingColor.Y,
-                            material.BlendingColor.Z,
-                            material.BlendingColor.W
-                        );
-
-                        gl.BlendEquationSeparate(BlendEquationModeEXT.Max, BlendEquationModeEXT.Max);//material.AlphaBlendEquation);
-
-                        gl.BlendFuncSeparate(
-                            BlendingFactor.SrcColor,
-                            BlendingFactor.DstColor,
-                            BlendingFactor.One,
-                            BlendingFactor.One
-                        );
-                        gl.StencilFunc(material.StencilFunction, material.StencilRef, material.StencilMask);
-
-                        gl.StencilMask(material.StencilBufferMask);
-
-                        gl.StencilOp(material.StencilOps[0], material.StencilOps[1], material.StencilOps[2]);
-
-                        gl.DepthFunc(material.DepthFunction);//h == 0 ? DepthFunction.Greater : DepthFunction.Less);
-                        gl.DepthMask(h == 1 ? material.DepthMaskEnabled : false);
-
-                        gl.ColorMask(
-                            material.ColorMask[0],
-                            material.ColorMask[1],
-                            material.ColorMask[2],
-                            material.ColorMask[3]
-                        );
-
-                        if (material.PolygonOffsetFillEnabled)
-                        {
-                            gl.Enable(EnableCap.PolygonOffsetFill);
-                            gl.PolygonOffset(0, material.PolygonOffsetUnit);
-                        }
-
-                        material.Program.TryGetUniformLoc("uPickingId", out int location);
-                        gl.Uniform1(location, actorSceneObj.PickingId);
-                        material.Program.TryGetUniformLoc("uShadow", out int location2);
-                        gl.Uniform1(location2, h == 0 ? 1u : 2u);
-
-
-                        mesh.Draw();
-
-                        gl.Enable(EnableCap.CullFace);
-                        gl.Disable(EnableCap.PolygonOffsetFill);
-                        gl.Disable(EnableCap.Blend);
-                    }
-                }
-                return;
-            }
             // Console.WriteLine(actorSceneObj.StageObj.Translation);
             // Console.WriteLine(scn.Camera.Eye);
             # warning THIS WILL RENDER MULTIPLE TIMES IF AN OBJECT HAS MULTIPLE LAYERS
@@ -527,6 +554,8 @@ internal static class ModelRenderer
                     cnt += 1;
                 } 
             }
+
+            
 
             for (int h = 0; h < m.Count; h++)
             {
@@ -559,7 +588,7 @@ internal static class ModelRenderer
                             material.BlendingColor.W
                         );
 
-                        gl.BlendEquationSeparate(material.ColorBlendEquation, BlendEquationModeEXT.Max );//material.AlphaBlendEquation);
+                        gl.BlendEquationSeparate(material.ColorBlendEquation, BlendEquationModeEXT.Max);//material.AlphaBlendEquation);
 
                         gl.BlendFuncSeparate(
                             material.ColorSrcFact,
