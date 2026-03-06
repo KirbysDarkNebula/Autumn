@@ -52,6 +52,10 @@ internal enum ArgType
     /// </summary>
     ScaleAxis,
     /// <summary>
+    /// Sets the Y scale of this actor's shadow 
+    /// </summary>
+    ShadowHeight,
+    /// <summary>
     /// Sets the type of block for this slot of the BlockDragon, when edited it checks for the other args to set the dragon length
     /// </summary>
     BlockDragonBlock,

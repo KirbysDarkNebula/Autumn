@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using System.Text.RegularExpressions;
 using Autumn.Background;
 using Autumn.Enums;
 using Autumn.FileSystems;
@@ -303,6 +304,49 @@ internal class ActorSceneObj : IStageSceneObj
                     case "Z":
                         DeltaScale.Z = (int)StageObj.Properties[arg]!;
                     break;
+                }
+                UpdateTransform();
+            break;
+
+            case ArgType.RotateCoreCount:
+            case ArgType.RotateCoreSides:
+                string sideCoreS = entry.Args![arg].ArgType == ArgType.RotateCoreSides ? arg : entry.ArgsRem!.First(x => x.Value is ClassModifiersWrapper.RotateCoreBars).Key;
+                var sideCore = (ClassModifiersWrapper.RotateCoreBars)entry.ArgsRem![sideCoreS];
+                int cnt = 1;
+                int sides = (int)(StageObj.Properties[sideCoreS] ?? 1);
+                if (sideCore.UseArgCount)
+                {
+                    cnt = (int)StageObj.Properties[entry.Args![arg].ArgType == ArgType.RotateCoreCount ? arg : entry.ArgsRem!.First(x => x.Value is ClassModifiersWrapper.RotateCoreCount).Key]!;
+                }
+                else
+                {
+                    // Temporary until we figure how to get the info from the Actor name
+                    cnt = int.Parse(Regex.Match(Actor.Name, @"-?\d+").Value);
+                }
+                cnt = cnt < 1 ? 1 : cnt;                
+                sides = sides < 1 ? 1 : sides;                
+                end = SubActors.Count + BaseSubActorCount;
+                for (int i = end-1; i >= BaseSubActorCount; i--)
+                {
+                    SubActors.RemoveAt(i);
+                    SubActorTransforms.RemoveAt(i);
+                }
+                
+                for (int i = 0; i < sides; i++)
+                {
+                    for (int s = 0; s < cnt; s++)
+                    {
+                        Actor? AddedModl = fsHandler.ReadActorExtrasArg(s < cnt -1 ? sideCore.MiddleModel : sideCore.PointModel, scheduler);
+                        if (AddedModl is null) continue;
+                        SubActors.Add(AddedModl);
+                        SubActorTransforms.Add( new() 
+                        {
+                            Translate = Vector3.Transform(new Vector3 (100 * (s+1), 50, 0), Matrix4x4.CreateRotationY(360 / sides * i *(float)Math.PI/180)),
+                            Rotate = new Vector3(0, 360 / sides * i + 90, 0)
+                        }
+                        );
+                        
+                    }
                 }
                 UpdateTransform();
             break;

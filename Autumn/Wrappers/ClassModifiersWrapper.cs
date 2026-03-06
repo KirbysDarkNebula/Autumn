@@ -143,26 +143,32 @@ internal static class ClassModifiersWrapper
     /// Actor that has models (MiddleModel, PointModel) that rotate around it, one arg can set the amount of said RotateModel, another arg sets the number of lines of that
     /// Value of the arg -> number of balls
     /// </summary>
-    public class RotateCoreAmount : BaseArg
+    public class RotateCoreCount : BaseArg
     {
-        // public Vector3 Offset { get; set; } // Hardcoded
-        public string? PointModel { get; set; } // last repeated object
-        public string? MiddleModel { get; set; } // object to repeat in line
-        public RotateCoreAmount(Dictionary<string, object> props)
-        {
-            object? v;
-            if (props.TryGetValue("MiddleModel", out v))
-                MiddleModel = (string)v;
-            if (props.TryGetValue("PointModel", out v))
-                PointModel = (string)v;
-        }
     }
     /// <summary>
     /// Number of lines for this actor, they will be drawn as equal divisions of a circle (3 lines -> 120º between each)
     /// Value of the arg -> line count
     /// </summary>
-    public class RotateCoreSides : BaseArg
+    public class RotateCoreBars : BaseArg
     {
+        /// <summary>
+        /// if true,we check for the first arg that has RotateCoreCount when setting the bars,
+        /// otherwise we use the actor's name to guess the number of balls (8M -> 8 balls per bar)
+        /// </summary>
+        public bool UseArgCount { get; set; } 
+        public string PointModel { get; set; } // last repeated object
+        public string MiddleModel { get; set; } // object to repeat in line
+        public RotateCoreBars(Dictionary<string, object> props)
+        {
+            object? v;
+            if (props.TryGetValue("UseArgCount", out v))
+                UseArgCount = (bool)v;
+            if (props.TryGetValue("MiddleModel", out v))
+                MiddleModel = (string)v;
+            if (props.TryGetValue("PointModel", out v))
+                PointModel = (string)v;
+        }
         
     }
     /// <summary>
@@ -275,8 +281,8 @@ internal static class ClassModifiersWrapper
                 {
                     ArgType.Tower => new TowerArg(entry.Args[k].Properties),
                     ArgType.AnimChange => new AnimChangeArg(entry.Args[k].Properties),
-                    ArgType.RotateCoreCount => new RotateCoreAmount(entry.Args[k].Properties),
-                    ArgType.RotateCoreSides => new RotateCoreSides(),
+                    ArgType.RotateCoreCount => new RotateCoreCount(),
+                    ArgType.RotateCoreSides => new RotateCoreBars(entry.Args[k].Properties),
                     ArgType.SwingCoreLength => new SwingingCore(entry.Args[k].Properties),
                     ArgType.AddExtraModel => new ExtraArgModels(entry.Args[k].Properties),
                     ArgType.ShadowType => new ShadowType(),

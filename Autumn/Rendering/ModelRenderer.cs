@@ -640,14 +640,16 @@ internal static class ModelRenderer
         foreach (var (mesh, material) in act.EnumerateMeshes())
         {
             string className = actorSceneObj.StageObj.Name;
-
-            actorSceneObj.DeltaTranslation += actorSceneObj.SubActorTransforms[idx].Translate * actorSceneObj.StageObj.Scale;
-            actorSceneObj.DeltaScale *= actorSceneObj.SubActorTransforms[idx].Scale;
-            actorSceneObj.UpdateTransform();
-            material.SetMatrices(s_projectionMatrix, actorSceneObj.Transform, s_viewMatrix);
-            actorSceneObj.DeltaTranslation -= actorSceneObj.SubActorTransforms[idx].Translate * actorSceneObj.StageObj.Scale;
-            actorSceneObj.DeltaScale /= actorSceneObj.SubActorTransforms[idx].Scale;
-            actorSceneObj.UpdateTransform();  
+            material.SetMatrices(
+                s_projectionMatrix, 
+                Matrix4x4.CreateRotationX(actorSceneObj.SubActorTransforms[idx].Rotate.X * MathF.PI / 180) *
+                Matrix4x4.CreateRotationY(actorSceneObj.SubActorTransforms[idx].Rotate.Y * MathF.PI / 180) *
+                Matrix4x4.CreateRotationZ(actorSceneObj.SubActorTransforms[idx].Rotate.Z * MathF.PI / 180) *
+                MathUtils.CreateTransformWithDelta((actorSceneObj.StageObj.Translation) * 0.01f, 
+                (actorSceneObj.DeltaTranslation + actorSceneObj.SubActorTransforms[idx].Translate * actorSceneObj.StageObj.Scale) * 0.01f,
+                actorSceneObj.StageObj.Scale * actorSceneObj.SubActorTransforms[idx].Scale * 0.01f, 
+                actorSceneObj.StageObj.Rotation+ actorSceneObj.DeltaRotation), 
+                s_viewMatrix);
 
             material.SetSelectionColor(new(s_highlightColor, actorSceneObj.Selected ? 0.4f : 0));
             # warning maybe replace with parent Actor's light type and don't try to match the other one
