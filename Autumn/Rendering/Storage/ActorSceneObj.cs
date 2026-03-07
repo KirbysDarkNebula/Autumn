@@ -251,10 +251,10 @@ internal class ActorSceneObj : IStageSceneObj
 
             case ArgType.AddExtraModel:
                 var exMd = (ClassModifiersWrapper.ExtraArgModels)entry.ArgsRem![arg];
-                end = SubActors.Count + BaseSubActorCount;
+                end = SubActors.Count -1 ;
                 if ((int)StageObj.Properties[arg]! == -1)
                 {
-                    for (int i = end-1; i >= BaseSubActorCount; i--)
+                    for (int i = end; i >= BaseSubActorCount; i--)
                     {
                         SubActors.RemoveAt(i);
                         SubActorTransforms.RemoveAt(i);
@@ -320,13 +320,12 @@ internal class ActorSceneObj : IStageSceneObj
                 }
                 else
                 {
-                    // Temporary until we figure how to get the info from the Actor name
                     cnt = int.Parse(Regex.Match(Actor.Name, @"-?\d+").Value);
                 }
                 cnt = cnt < 1 ? 1 : cnt;                
                 sides = sides < 1 ? 1 : sides;                
-                end = SubActors.Count + BaseSubActorCount;
-                for (int i = end-1; i >= BaseSubActorCount; i--)
+                end = SubActors.Count - 1;
+                for (int i = end; i >= BaseSubActorCount; i--)
                 {
                     SubActors.RemoveAt(i);
                     SubActorTransforms.RemoveAt(i);
