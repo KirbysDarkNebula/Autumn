@@ -347,6 +347,7 @@ internal class ActorSceneObj : IStageSceneObj
                         
                     }
                 }
+                AABB = Actor.AABB * cnt;
                 UpdateTransform();
             break;
 
