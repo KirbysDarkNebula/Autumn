@@ -645,7 +645,7 @@ internal class FragmentShaderGenerator
         SB.AppendLine($"\t\t\t{DiffuseUniform} * Lights[i].Diffuse * clamp(ln, 0, 1);");
         SB.AppendLine(
             $"\t\tvec4 Specular = "
-                + $"{Specular0Color} * Lights[i].Specular0 + " // Make specular 0 stronger to be closer to original
+                + $"{Specular0Color} * Lights[i].Specular0 * 2 + " // Make specular 0 stronger to be closer to original
                 + $"{Specular1Color} * Lights[i].Specular1;"
         );
         SB.AppendLine($"\t\tFragPriColor.rgb += Diffuse.rgb * SpotAtt * DistAtt;");
