@@ -593,46 +593,7 @@ internal partial class RomFSHandler
         if (!found)
             return actor;
 
-        if (narc.TryGetFile("InitLight.byml", out byte[] light))
-        {
-            BYAML act_lights = BYAMLParser.Read(light, s_byamlEncoding);
-            if (act_lights.RootNode.NodeType == BYAMLNodeType.Dictionary)
-            {
-                var lrt = act_lights.RootNode.GetValueAs<Dictionary<string, BYAMLNode>>();
-                if (lrt!.ContainsKey("LightCalcType"))
-                    actor.InitLight.GetCalcType((string)lrt["LightCalcType"].Value!);
-                if (lrt!.ContainsKey("LightType"))
-                    actor.InitLight.GetType((string)lrt["LightType"].Value!);
-            }
-        }
-        if (narc.TryGetFile("InitShadow.byml", out byte[] shadows))
-        {
-            BYAML act_sh = BYAMLParser.Read(shadows, s_byamlEncoding);
-            if (act_sh.RootNode.NodeType == BYAMLNodeType.Dictionary)
-            {
-                var srt = act_sh.RootNode.GetValueAs<Dictionary<string, BYAMLNode>>();
-                if (srt!.ContainsKey("Category") && srt["Category"].Value != null)
-                {
-                    if (srt["Category"].NodeType == BYAMLNodeType.String && !string.IsNullOrEmpty((string)srt["Category"].Value!))
-                        Console.WriteLine($"{actor.Name} Shadows Contains actual category");
-                }
-                if (srt!.ContainsKey("Shadows"))
-                {
-                    //Console.WriteLine("Contains Shadows");
-                    var shArr = srt["Shadows"];
-                    if (shArr.NodeType == BYAMLNodeType.Array)
-                    {
-                        BYAMLNode[] shs = shArr.GetValueAs<BYAMLNode[]>()!;
-                        foreach (BYAMLNode shd in shs)
-                        {
-                            if (shd.NodeType is not BYAMLNodeType.Dictionary) continue;
-                            actor.InitShadow.Add(new (shd.GetValueAs<Dictionary<string, BYAMLNode>>()!));
-                        }
-                    }
-                    //srt.TryGetValue("", out BYAMLNode SName)
-                }
-            }
-        }
+        actor.ReadActorInits(narc, s_byamlEncoding);
 
         H3D h3D;
 
@@ -769,18 +730,7 @@ internal partial class RomFSHandler
 
                     Actor subActor = new(s);
 
-                    if (narc.TryGetFile("InitLight.byml", out byte[] light))
-                    {
-                        BYAML act_lights = BYAMLParser.Read(light, s_byamlEncoding);
-                        if (act_lights.RootNode.NodeType == BYAMLNodeType.Dictionary)
-                        {
-                            var lrt = act_lights.RootNode.GetValueAs<Dictionary<string, BYAMLNode>>();
-                            if (lrt!.ContainsKey("LightCalcType"))
-                                subActor.InitLight.GetCalcType((string)lrt["LightCalcType"].Value!);
-                            if (lrt!.ContainsKey("LightType"))
-                                subActor.InitLight.GetType((string)lrt["LightType"].Value!);
-                        }
-                    }
+                    subActor.ReadActorInits(narc, s_byamlEncoding);
 
                     foreach (H3DTexture texture in h3D.Textures)
                     {
@@ -850,18 +800,7 @@ internal partial class RomFSHandler
         narc!.TryGetFile(subActorName + ".bcmdl", out cgfx);
         H3D h3D;
 
-        if (narc.TryGetFile("InitLight.byml", out byte[] light))
-        {
-            BYAML act_lights = BYAMLParser.Read(light, s_byamlEncoding);
-            if (act_lights.RootNode.NodeType == BYAMLNodeType.Dictionary)
-            {
-                var lrt = act_lights.RootNode.GetValueAs<Dictionary<string, BYAMLNode>>();
-                if (lrt!.ContainsKey("LightCalcType"))
-                    subActor.InitLight.GetCalcType((string)lrt["LightCalcType"].Value!);
-                if (lrt!.ContainsKey("LightType"))
-                    subActor.InitLight.GetType((string)lrt["LightType"].Value!);
-            }
-        }
+        subActor.ReadActorInits(narc, s_byamlEncoding);
 
         try
         {

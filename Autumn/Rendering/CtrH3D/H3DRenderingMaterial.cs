@@ -172,7 +172,8 @@ internal class H3DRenderingMaterial
         ShaderSource vertexShader = H3DShaders.VertexShader(FakeVtxCol);
         ShaderSource fragmentShader = H3DShaders.GetFragmentShader(
             material.Name,
-            material.MaterialParams
+            material.MaterialParams,
+            actor.Info?.ProjectionYOffset
         );
         Name = material.Name;
 
