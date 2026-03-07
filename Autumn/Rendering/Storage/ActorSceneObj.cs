@@ -350,6 +350,11 @@ internal class ActorSceneObj : IStageSceneObj
                 UpdateTransform();
             break;
 
+            case ArgType.PicketHeight:
+                DeltaTranslation.Y = 70 * - ((int)StageObj.Properties[arg]! == -1 ? 0 : (int)StageObj.Properties[arg]!);
+                UpdateTransform();
+            break;
+
             default:
             
             break;
