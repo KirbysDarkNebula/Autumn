@@ -322,7 +322,7 @@ internal class ActorSceneObj : IStageSceneObj
                 {
                     cnt = int.Parse(Regex.Match(Actor.Name, @"-?\d+").Value);
                 }
-                cnt = cnt < 1 ? 1 : cnt;                
+                cnt = cnt < 0 ? 4 : cnt;                
                 sides = sides < 1 ? 1 : sides;                
                 end = SubActors.Count - 1;
                 for (int i = end; i >= BaseSubActorCount; i--)
@@ -344,7 +344,6 @@ internal class ActorSceneObj : IStageSceneObj
                             Rotate = new Vector3(0, 360 / sides * i + 90, 0)
                         }
                         );
-                        
                     }
                 }
                 AABB = Actor.AABB * cnt;
