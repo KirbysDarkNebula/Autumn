@@ -385,6 +385,21 @@ internal class MainWindowContext : WindowContext
         _camParams.SetSelectedChange();
         ImGui.SetWindowFocus("cameras");
     }
+    public StageFog? GetSelectedFog()
+    {
+        if (!_fogParams.IsOpen) return null;
+        if (_fogParams.SelectedFog > 0)
+        {
+            if ( CurrentScene!.Stage.StageFogs.Count > _fogParams.SelectedFog)
+                return CurrentScene!.Stage.StageFogs[_fogParams.SelectedFog];
+        }
+        return CurrentScene!.MainStageFog;
+    }
+    public uint GetFogType()
+    {
+        if (!_fogParams.IsOpen) return 0;
+        else return (uint)CurrentScene!.MainStageFog.FogType;
+    }
     public void UpdateCameraList()
     {
         _propertiesWindow.updateCameras = true;

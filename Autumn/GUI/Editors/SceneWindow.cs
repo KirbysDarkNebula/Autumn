@@ -819,7 +819,7 @@ internal class SceneWindow(MainWindowContext window)
         {
             window.ExtrasFrameBuffer.Use(window.GL!);
             window.GL!.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
-            Canvas.CanvasRenderer.Render(window.GL!, window.ContextHandler.SystemSettings.EXPERIMENTAL_SelectionOutline, window.SceneFramebuffer);
+            Canvas.CanvasRenderer.Render(window.GL!, window);
         }
         GizmoButtons(upperRightCorner);
         ActionPanel(contentAvail);

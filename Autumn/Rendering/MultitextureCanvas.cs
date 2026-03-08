@@ -1,4 +1,6 @@
 using System.Numerics;
+using Autumn.GUI.Windows;
+using Autumn.Storage;
 using SceneGL;
 using SceneGL.GLHelpers;
 using SceneGL.GLWrappers;
@@ -42,19 +44,48 @@ internal static class Canvas
 
             uniform sampler2D FgTexture;
             uniform sampler2D BgTexture;
+            uniform sampler2DShadow Depth;
+
+            uniform vec3 uFogColor;
+            uniform vec3 uNearFarDensity;
+
 
             uniform uint uBools;
             // first bit -> outline enabled
+            // second-third bit -> fog type
+            //  0 -> disabled, 1 -> linear, 2 -> exponential, 3 -> exp_sqr
 
             out vec4 FragColor;
 
             const float offset = 1.0 / 350.0; 
+
+            float ToLinear(float depth)
+            {
+                float z = depth * 10 - 9.5; // Back to NDC 
+                z = clamp(z, -1, 10);
+                return (2.0 * uNearFarDensity.x * uNearFarDensity.y) / (uNearFarDensity.y + uNearFarDensity.x - z * (uNearFarDensity.y - uNearFarDensity.x));
+            }
+
+            // float ToExp(float depth)
+            // {
+            //     float z = depth * 10.0 - 10.0; // Back to NDC 
+            //     return exp(-uNearFarDensity.z*z);
+            // }
+
+            float ToExp(float depth)
+            {
+                float z = depth * 10 - 1;
+                return exp(-(z/ uNearFarDensity.z));
+            }
+            float ToExpSqr(float depth)
+            {
+                float z = depth * 10 - 1;
+                return exp(-(pow(z, 2)/ uNearFarDensity.z));
+            }
+
             void main()
             {
                 FragColor = texture(BgTexture, TexCoords);
-                vec4 tx2 = texture(FgTexture, TexCoords);
-                if (tx2.g * 2 < tx2.b)
-                    FragColor *= 0.6;
                 if ((uBools & 1u) == 1u)
                 {
                     vec2 offsets[9] = vec2[](
@@ -90,6 +121,28 @@ internal static class Canvas
                         FragColor.rgb += clamp(col, vec3(0), vec3(1));
                     }
                 }
+                // Linear fog
+                if (((uBools >> 1u) & 3u) == 1u)
+                {
+                    FragColor.rgb = mix(FragColor.rgb, uFogColor, clamp(1 - log(texture(Depth, vec3(TexCoords.x, TexCoords.y, 0.01))) * log(1/ uNearFarDensity.y) * log(uNearFarDensity.x), 0, 1));
+                    // FragColor.rgb += uFogColor * vec3(ToLinear(texture(Depth, vec3(TexCoords.x, TexCoords.y, 0.01))));
+                }
+                // Exponential fog
+                else if (((uBools >> 1u) & 3u) == 2u)
+                {
+                   FragColor.rgb = mix(FragColor.rgb, uFogColor, clamp(ToExp(log(texture(Depth, vec3(TexCoords.x, TexCoords.y, 0.01))) * log(1/ 1000000f)), 0.0, 1.0)); 
+                }
+                // Exponential Squared fog
+                else if (((uBools >> 1u) & 3u) == 3u)
+                {
+                   FragColor.rgb = mix(FragColor.rgb, uFogColor, clamp(ToExpSqr(log(texture(Depth, vec3(TexCoords.x, TexCoords.y, 0.01))) * log(1/ 1/ 1000000f)), 0.0, 1.0)); 
+                }
+
+                vec4 tx2 = texture(FgTexture, TexCoords);
+                if (tx2.g * 2 < tx2.b)
+                    FragColor *= 0.6;
+                // FragColor.rgb = vec3(ToExpSqr(log(texture(Depth, vec3(TexCoords.x, TexCoords.y, 0.01))) * log(1 / 1000000f)));
+                // FragColor.rgb = vec3(1 - log(texture(Depth, vec3(TexCoords.x, TexCoords.y, 0.01))) * log(1/ uNearFarDensity.x / 1000));
             }
             """
 		);
@@ -150,19 +203,20 @@ internal static class Canvas
             return builder.GetModel(gl);
         }
         public static bool HasToReset = true;
-        public static void Reset(uint tx1, uint tx2)
+        public static void Reset(uint tx1, uint tx2, uint tx3)
         {
             samplerBindings[0] = new ("BgTexture", _smpl, tx1);
             samplerBindings[1] = new ("FgTexture", _smpl, tx2);
+            samplerBindings[2] = new ("Depth", _smpl, tx3);
             HasToReset = false;
         }
 
 
-        public static void Render(GL gl, bool enableOutline, SceneGL.GLWrappers.Framebuffer basis)
+        public static void Render(GL gl, MainWindowContext window)
         {
             if (HasToReset) 
             {
-                Reset(basis.GetColorTexture(0), basis.GetColorTexture(2));
+                Reset(window.SceneFramebuffer.GetColorTexture(0), window.SceneFramebuffer.GetColorTexture(2), window.SceneFramebuffer.DepthStencilTexture);
                 _samplers = ShaderParams.FromSamplers(samplerBindings.ToArray());
             }
             if (!Canvas.TryUse(gl, out ProgramUniformScope scope))
@@ -171,9 +225,21 @@ internal static class Canvas
             using (scope)
             {
                 gl.Disable(EnableCap.CullFace);
-                if (Program.TryGetUniformLoc("uBools", out int location))
-                    gl.Uniform1(location, enableOutline ? 1u : 0u);
+
+                uint uBools = window.ContextHandler.SystemSettings.EXPERIMENTAL_SelectionOutline ? 1u : 0u;
+                uBools += (uint)window.GetFogType() << 1;
                 
+                if (Program.TryGetUniformLoc("uBools", out int location))
+                    gl.Uniform1(location, uBools);
+
+                var fog = window.GetSelectedFog();
+                if (fog != null)
+                {    
+                    if (Program.TryGetUniformLoc("uFogColor", out location))
+                        gl.Uniform3(location, fog!.Color);
+                    if (Program.TryGetUniformLoc("uNearFarDensity", out location))
+                        gl.Uniform3(location, new Vector3(fog.MinDepth, fog.MaxDepth, fog.Density));
+                }
                 s_model!.Draw(gl);
                 gl.Enable(EnableCap.CullFace);
             }
