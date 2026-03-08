@@ -238,7 +238,13 @@ internal static class Canvas
                     if (Program.TryGetUniformLoc("uFogColor", out location))
                         gl.Uniform3(location, fog!.Color);
                     if (Program.TryGetUniformLoc("uNearFarDensity", out location))
-                        gl.Uniform3(location, new Vector3(fog.MinDepth, fog.MaxDepth, fog.Density));
+                    {
+                        if (fog.MinDepth < fog.MaxDepth)
+                            gl.Uniform3(location, new Vector3(fog.MinDepth, fog.MaxDepth, fog.Density));
+                        else
+                            gl.Uniform3(location, new Vector3(0, 0, fog.Density));
+
+                    }
                 }
                 s_model!.Draw(gl);
                 gl.Enable(EnableCap.CullFace);
