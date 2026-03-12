@@ -130,18 +130,18 @@ internal static class Canvas
                 // Exponential fog
                 else if (((uBools >> 1u) & 3u) == 2u)
                 {
-                   FragColor.rgb = mix(FragColor.rgb, uFogColor, clamp(ToExp(log(texture(Depth, vec3(TexCoords.x, TexCoords.y, 0.01))) * log(1/ 1000000f)), 0.0, 1.0)); 
+                   FragColor.rgb = mix(FragColor.rgb, uFogColor, clamp(ToExp(log(texture(Depth, vec3(TexCoords.x, TexCoords.y, 0.01))) * log(1/ 1000000.0)), 0.0, 1.0)); 
                 }
                 // Exponential Squared fog
                 else if (((uBools >> 1u) & 3u) == 3u)
                 {
-                   FragColor.rgb = mix(FragColor.rgb, uFogColor, clamp(ToExpSqr(log(texture(Depth, vec3(TexCoords.x, TexCoords.y, 0.01))) * log(1/ 1/ 1000000f)), 0.0, 1.0)); 
+                   FragColor.rgb = mix(FragColor.rgb, uFogColor, clamp(ToExpSqr(log(texture(Depth, vec3(TexCoords.x, TexCoords.y, 0.01))) * log(1/ 1/ 1000000.0)), 0.0, 1.0)); 
                 }
 
                 vec4 tx2 = texture(FgTexture, TexCoords);
                 if (tx2.g * 2 < tx2.b)
                     FragColor *= 0.6;
-                // FragColor.rgb = vec3(ToExpSqr(log(texture(Depth, vec3(TexCoords.x, TexCoords.y, 0.01))) * log(1 / 1000000f)));
+                // FragColor.rgb = vec3(ToExpSqr(log(texture(Depth, vec3(TexCoords.x, TexCoords.y, 0.01))) * log(1 / 1000000.0)));
                 // FragColor.rgb = vec3(1 - log(texture(Depth, vec3(TexCoords.x, TexCoords.y, 0.01))) * log(1/ uNearFarDensity.x / 1000));
             }
             """
