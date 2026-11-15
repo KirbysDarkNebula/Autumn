@@ -150,7 +150,7 @@ internal class CameraParamsWindow(MainWindowContext window)
         ImGui.NewLine();
         ImGui.Separator();
 
-        float wh = ImGui.GetWindowHeight() / 5.1f / window.ScalingFactor;
+        float wh = ImGui.GetWindowHeight() / 5.1f;
         wh = wh < 180 ? 180 : wh;
 
         ImGuiWidgets.TextHeader("Stage Cameras:");
@@ -220,7 +220,7 @@ internal class CameraParamsWindow(MainWindowContext window)
 
 
         ImGui.SameLine(0, style.ItemInnerSpacing.X);
-        if (ImGui.Button(IconUtils.PASTE + "## dupecam", new Vector2(ImGui.GetContentRegionAvail().X / 2, default)))
+        if (ImGui.Button(IconUtils.COPY + "## dupecam", new Vector2(ImGui.GetContentRegionAvail().X / 2, default)))
         {
             scn.Stage.CameraParams.AddCamera(new(scn.Stage.CameraParams.Cameras[selectedcam]));
             window.UpdateCameraList();
@@ -321,7 +321,7 @@ internal class CameraParamsWindow(MainWindowContext window)
                                             rfrail = rails.ToList().IndexOf(rals) + 1;
                                     }
                                     int rfr2 = rfrail;
-                                    ImGui.SetNextItemWidth(ImGuiWidgets.SetPropertyWidthGen("Rail") - ImGui.CalcTextSize(IconUtils.PENCIL).X * 1.65f * window.ScalingFactor - 15);
+                                    ImGui.SetNextItemWidth(ImGuiWidgets.SetPropertyWidthGen("Rail") - ImGui.CalcTextSize(IconUtils.PENCIL).X * 1.65f - 15);
                                     ImGui.Combo("##Railselector", ref rfr2, railStrings, rails.Count() + 1);
                                     if (rfr2 != rfrail)
                                     {
@@ -608,7 +608,7 @@ internal class CameraParamsWindow(MainWindowContext window)
         if (disabled)
             ImGui.BeginDisabled();
 
-        bool rb = ImGui.Button(isCamera ? IconUtils.CAMERA : IconUtils.USER);
+        bool rb = ImGui.Button(isCamera ? IconUtils.VIDEO : IconUtils.USER);
         ImGui.SetItemTooltip(isCamera ? "Copy Camera position" : "Copy selected object position");
 
         if (disabled)
@@ -755,7 +755,7 @@ internal class CameraParamsWindow(MainWindowContext window)
             float dashangle = 0;
             float dashdistance = 0;
 
-            ImGui.Button(IconUtils.DASH);
+            ImGui.Button(IconUtils.PERSON_RUNNING);
             if (ImGui.IsItemActive())
             {
                 if (currcam.DashAngleTuner == null)

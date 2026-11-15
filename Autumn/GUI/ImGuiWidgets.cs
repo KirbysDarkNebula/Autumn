@@ -109,7 +109,7 @@ internal static class ImGuiWidgets
                 str = ARROW_RIGHT + "##" + str;
                 break;
             case ImGuiDir.Count:
-                str = DOWN + "##" + str;
+                str = CHEVRON_DOWN + "##" + str;
                 break;
         }
         return ImGui.Button(str, size ?? default);
@@ -386,4 +386,9 @@ internal static class ImGuiWidgets
         return r;
     }
 
+    public static void SameLineNoSpacing()
+    {
+        ImGui.SameLine();
+        ImGui.SetCursorPosX(ImGui.GetCursorPosX() - ImGui.GetStyle().ItemSpacing.X);
+    }
 }

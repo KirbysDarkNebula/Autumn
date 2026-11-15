@@ -53,15 +53,11 @@ internal class AddStageDialog
         _skipOk = false;
     }
 
-    bool _noReference = false;
-
     public void Render()
     {
-        if (_window.ContextHandler.FSHandler.OriginalFS == null)
-            _noReference = true;
-
         if (!_isOpened)
             return;
+
         if (ImGui.IsKeyPressed(ImGuiKey.Escape))
         {
             Reset();
@@ -71,7 +67,7 @@ internal class AddStageDialog
 
         ImGui.OpenPopup("Add New Stage");
 
-        Vector2 dimensions = new(450 * _window.ScalingFactor, 0);
+        Vector2 dimensions = new(450, 0);
         ImGui.SetNextWindowSize(dimensions, ImGuiCond.Always);
 
         ImGui.SetNextWindowPos(ImGui.GetMainViewport().GetCenter(), ImGuiCond.Appearing, new(0.5f, 0.5f));
@@ -84,7 +80,8 @@ internal class AddStageDialog
             )
         )
             return;
-        if (_noReference) RenderNoRomfs();
+
+        if (_window.ContextHandler.FSHandler.OriginalFS is null) RenderNoRomfs();
         else RenderWithRomfs();
     }
 
@@ -238,7 +235,7 @@ internal class AddStageDialog
         #region Bottom bar
 
 
-        float okButtonWidth = 50 * _window.ScalingFactor;
+        float okButtonWidth = 50;
 
         bool _disable = false;
 
@@ -331,7 +328,7 @@ internal class AddStageDialog
         ImGuiStylePtr style = ImGui.GetStyle();
 
 
-        float scenarioFieldWidth = 80 * _window.ScalingFactor;
+        float scenarioFieldWidth = 80;
 
         ImGui.SetNextItemWidth(contentAvail.X - scenarioFieldWidth - style.ItemSpacing.X);
         if (ImGui.InputTextWithHint("##name", "Name", ref _name, 100))

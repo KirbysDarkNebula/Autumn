@@ -49,13 +49,19 @@ internal abstract class FileChooserWindowContext : WindowContext
     private bool _inputtingPath = false;
     private bool _inputPathInvalid = false;
     private string _inputPathBuffer = "";
+    private string _selectedPathBuffer = ""; // Used instead of SelectedPath to keep case in case-insensitive environments.
 
     private bool _isPathValid = true;
+
+    private bool _isCurrentDirCaseInsensitiveChecked = false;
+    private bool _isCurrentDirCaseInsensitive = false;
 
     /// <summary>
     /// Error that shows when the path is invalid.
     /// </summary>
     protected string PathError = string.Empty;
+
+    protected WindowContext? ParentWindowContext = null;
 
     /// <summary>
     /// Variable that is used to tell that the SelectedFile was changed externally.
@@ -82,15 +88,33 @@ internal abstract class FileChooserWindowContext : WindowContext
 
     protected event Action? DirectoryUpdated;
 
+    public FileChooserWindowContext(WindowContext parent)
+        : this(parent.ContextHandler, parent.WindowManager)
+    {
+        ParentWindowContext = parent;
+    }
+
     public FileChooserWindowContext(ContextHandler contextHandler, WindowManager windowManager)
         : base(contextHandler, windowManager)
     {
-        SuccessCallback += _ => Window.Close();
-        CancelCallback += Window.Close;
         Drives = DriveInfo.GetDrives();
+
+        SuccessCallback += _ =>
+        {
+            ParentWindowContext?.Disabled = false;
+            Window.Close();
+        };
+
+        CancelCallback += () =>
+        {
+            ParentWindowContext?.Disabled = false;
+            Window.Close();
+        };
 
         Window.Load += () =>
         {
+            ParentWindowContext?.Disabled = true;
+
             Window.Title = Title;
             Window.Size = new(640, 480);
 
@@ -192,7 +216,7 @@ internal abstract class FileChooserWindowContext : WindowContext
             {
                 if (_inputtingPath)
                 {
-                    float buttonWidth = 30 * ScalingFactor;
+                    float buttonWidth = 30;
                     float width = ImGui.GetContentRegionAvail().X;
                     width -= buttonWidth * 2 + ImGui.GetStyle().CellPadding.X * 4;
 
@@ -209,7 +233,7 @@ internal abstract class FileChooserWindowContext : WindowContext
 
                     ImGui.SameLine();
 
-                    if (ImGui.Button("Ok", new(buttonWidth, 0)) || ImGui.IsKeyPressed(ImGuiKey.Enter))
+                    if (ImGui.Button(IconUtils.CHECK, new(buttonWidth, 0)) || ImGui.IsKeyPressed(ImGuiKey.Enter))
                     {
                         if (Directory.Exists(_inputPathBuffer))
                         {
@@ -226,7 +250,7 @@ internal abstract class FileChooserWindowContext : WindowContext
 
                     ImGui.SameLine();
 
-                    if (ImGui.Button("X", new(buttonWidth, 0)))
+                    if (ImGui.Button(IconUtils.XMARK, new(buttonWidth, 0)))
                     {
                         _inputtingPath = false;
                         _inputPathInvalid = false;
@@ -276,40 +300,42 @@ internal abstract class FileChooserWindowContext : WindowContext
 
             if (ImGui.BeginChild("##Places", ImGui.GetContentRegionAvail() / new Vector2(4, 1), ImGuiChildFlags.Borders))
             {
-                if (ImGui.Selectable("Home"))
+                if (ImGui.Selectable(IconUtils.HOUSE_CHIMNEY + "  Home"))
                     ChangeDirectory(Home);
 
-                if (ImGui.Selectable("Documents"))
+                if (ImGui.Selectable(IconUtils.BOOK_OPEN + "  Documents"))
                 {
                     string dir = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
                     ChangeDirectory(dir);
                 }
 
-                if (ImGui.Selectable("Pictures"))
+                if (ImGui.Selectable(IconUtils.IMAGES + "  Pictures"))
                 {
                     string dir = Environment.GetFolderPath(Environment.SpecialFolder.MyPictures);
                     ChangeDirectory(dir);
                 }
 
-                if (ImGui.Selectable("Music"))
+                if (ImGui.Selectable(IconUtils.MUSIC + "  Music"))
                 {
                     string dir = Environment.GetFolderPath(Environment.SpecialFolder.MyMusic);
                     ChangeDirectory(dir);
                 }
 
-                if (ImGui.Selectable("Videos"))
+                if (ImGui.Selectable(IconUtils.VIDEO + "  Videos"))
                 {
                     string dir = Environment.GetFolderPath(Environment.SpecialFolder.MyVideos);
                     ChangeDirectory(dir);
                 }
 
-                if (ImGui.Selectable("Desktop"))
+                if (ImGui.Selectable(IconUtils.DESKTOP + "  Desktop"))
                 {
                     string dir = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
                     ChangeDirectory(dir);
                 }
 
+                ImGui.Spacing();
                 ImGui.Separator();
+                ImGui.Spacing();
 
                 foreach (DriveInfo drive in Drives)
                 {
@@ -317,11 +343,12 @@ internal abstract class FileChooserWindowContext : WindowContext
                         drive.DriveType == DriveType.Ram
                         || drive.DriveType == DriveType.Unknown
                         || drive.Name == "/"
-                        || drive.Name.StartsWith("/sys")
+                        || drive.Name.StartsWith("/sys/")
+                        || drive.Name.StartsWith("/proc/sys/")
                     )
                         continue;
 
-                    if (ImGui.Selectable(drive.Name))
+                    if (ImGui.Selectable(IconUtils.HARD_DRIVE + "  " + drive.Name))
                         ChangeDirectory(drive.RootDirectory.FullName);
                 }
             }
@@ -332,7 +359,7 @@ internal abstract class FileChooserWindowContext : WindowContext
             if (ImGui.BeginChild("##Main", ImGui.GetContentRegionAvail()))
             {
                 Vector2 fileChooseSize = ImGui.GetContentRegionAvail();
-                fileChooseSize.Y -= _bottomPanelBaseHeight * ScalingFactor;
+                fileChooseSize.Y -= _bottomPanelBaseHeight;
 
                 if (ImGui.BeginChild("##FileChoose", fileChooseSize, ImGuiChildFlags.Borders))
                     RenderFileChoosePanel();
@@ -347,21 +374,33 @@ internal abstract class FileChooserWindowContext : WindowContext
 
                     bool modified = ImGui.InputText(
                         "##SelectedFile",
-                        ref SelectedFile,
+                        ref _selectedPathBuffer,
                         4096
                     );
 
                     bool enterPressed = !_inputtingPath && !inputtedPathThisFrame && ImGui.IsKeyPressed(ImGuiKey.Enter);
                     inputtedPathThisFrame = false;
 
-                    if ((SelectedFileChanged || modified) && !enterPressed)
+                    if (SelectedFileChanged)
+                    {
+                        _selectedPathBuffer = SelectedFile;
+                        modified = true;
+                        SelectedFileChanged = false;
+                    }
+
+                    if (modified && !enterPressed)
                     {
                         PathError = string.Empty;
-                        SelectedFileChanged = false;
+
+                        if (IsCurrentDirCaseInsensitive())
+                            SelectedFile = _selectedPathBuffer.ToLower();
+                        else
+                            SelectedFile = _selectedPathBuffer;
+
                         _isPathValid = IsTargetValid();
                     }
 
-                    float buttonWidth = 60 * ScalingFactor;
+                    float buttonWidth = 60;
                     Vector2 buttonSize = new(buttonWidth, 0);
 
                     if (!string.IsNullOrEmpty(PathError))
@@ -400,6 +439,23 @@ internal abstract class FileChooserWindowContext : WindowContext
         };
     }
 
+    /// <returns>True if the file system of the current directory is case-insensitive</returns>
+    protected bool IsCurrentDirCaseInsensitive()
+    {
+        if (_isCurrentDirCaseInsensitiveChecked) return _isCurrentDirCaseInsensitive;
+
+        _isCurrentDirCaseInsensitiveChecked = true;
+        _isCurrentDirCaseInsensitive = false;
+
+        if (!Directory.Exists(CurrentDirectory)) return false;
+
+        string? path = Directory.EnumerateFileSystemEntries(CurrentDirectory).FirstOrDefault();
+        if (string.IsNullOrEmpty(path)) path = CurrentDirectory;
+
+        _isCurrentDirCaseInsensitive = Path.Exists(path.ToLower()) && Path.Exists(path.ToUpper());
+        return _isCurrentDirCaseInsensitive;
+    }
+
     protected abstract void RenderFileChoosePanel();
 
     /// <summary>
@@ -436,6 +492,8 @@ internal abstract class FileChooserWindowContext : WindowContext
 
         CurrentDirectory = directory;
         _parentDirectory = Directory.GetParent(directory)?.FullName ?? string.Empty;
+
+        _isCurrentDirCaseInsensitiveChecked = false;
 
         if (updateHistory)
         {

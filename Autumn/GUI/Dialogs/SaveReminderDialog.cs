@@ -14,7 +14,7 @@ internal class SaveReminderDialog(MainWindowContext window)
 {
     private bool _isOpened = false;
     public bool IsOpen => _isOpened;
-    Scene _closingScene;
+    Scene? _closingScene;
 
     public void Open(Scene closingScene)
     {
@@ -34,7 +34,7 @@ internal class SaveReminderDialog(MainWindowContext window)
 
         ImGui.OpenPopup("Warning!##SaveReminder");
 
-        Vector2 dimensions = new(500 * window.ScalingFactor, 0);
+        Vector2 dimensions = new(500, 0);
         ImGui.SetNextWindowSize(dimensions, ImGuiCond.Appearing);
 
         ImGui.SetNextWindowPos(
@@ -58,7 +58,7 @@ internal class SaveReminderDialog(MainWindowContext window)
 
         ImGui.Spacing();
 
-        Vector2 buttonSize = new(50 * window.ScalingFactor, 0);
+        Vector2 buttonSize = new(50, 0);
         if (ImGui.Button("Cancel", buttonSize))
         {
             ImGui.CloseCurrentPopup();

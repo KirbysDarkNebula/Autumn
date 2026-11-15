@@ -48,6 +48,8 @@ internal class MainWindowContext : WindowContext
     private readonly ShortcutsDialog _shortcutsDialog;
     private readonly DatabaseEditor _DBEditorDialog;
     private readonly SaveReminderDialog _saveReminderDialog;
+    private readonly UnsavedStagesDialog _unsavedStagesDialog;
+    private readonly AboutDialog _aboutDialog;
     #endregion
 
     #region Editor Dialogs
@@ -58,7 +60,8 @@ internal class MainWindowContext : WindowContext
 
     public bool IsDialogOpen => _addStageDialog.IsOpen || _addObjectDialog.IsOpen || _DBEditorDialog.IsOpen
                             || _editExtraPropsDialog.IsOpen || _settingsDialog.IsOpen || _editChildrenDialog.IsOpen || _saveReminderDialog.IsOpen
-                            || _shortcutsDialog.IsOpen || _editCCNT.IsOpen || _closingDialog.IsOpen || _welcomeDialog.IsOpen;
+                            || _unsavedStagesDialog.IsOpen || _shortcutsDialog.IsOpen || _editCCNT.IsOpen || _closingDialog.IsOpen
+                            || _welcomeDialog.IsOpen || _aboutDialog.IsOpen;
     public bool FlyCamOn => _sceneWindow.FlyCam;
 
     #region Editor Windows 
@@ -98,6 +101,8 @@ internal class MainWindowContext : WindowContext
         _DBEditorDialog = new(this);
         _searchObjDialog = new(this);
         _saveReminderDialog = new(this);
+        _unsavedStagesDialog = new(this);
+        _aboutDialog = new();
 
         // Initialize editors:
         _stageWindow = new(this);
@@ -269,6 +274,8 @@ internal class MainWindowContext : WindowContext
             _welcomeDialog.Render();
             _settingsDialog.Render();
             _saveReminderDialog.Render();
+            _unsavedStagesDialog.Render();
+            _aboutDialog.Render();
 
             _miscParams.Render();
             _camParams.Render();
@@ -336,7 +343,17 @@ internal class MainWindowContext : WindowContext
             return false;
         }
 
-        // The window is only closed if all tasks have finished.
+        if (HasUnsavedStages())
+        {
+            _unsavedStagesDialog.Open();
+            return false;
+        }
+
+        /*
+         * The window is only closed if:
+         *  - All background tasks have finished.
+         *  - All stages have been saved or discarded.
+         */
         return true;
     }
 
@@ -458,6 +475,8 @@ internal class MainWindowContext : WindowContext
         }
     }
 
+    internal bool HasUnsavedStages() => Scenes.Find(x => !x.IsSaved) is not null;
+
     /// <summary>
     /// Renders the main menu bar seen at the very top of the window.
     /// </summary>
@@ -574,7 +593,7 @@ internal class MainWindowContext : WindowContext
             ImGui.Separator();
             if (ImGui.MenuItem("Object Database"))
                 _DBEditorDialog.Open();
-            
+
             ImGui.EndMenu();
         }
 
@@ -619,9 +638,8 @@ internal class MainWindowContext : WindowContext
             if (ImGui.MenuItem("Shortcuts"))
                 _shortcutsDialog.Open();
             if (ImGui.MenuItem("About"))
-            {
+                _aboutDialog.Open();
 
-            }
             ImGui.EndMenu();
         }
         ImGui.SetCursorPos(c);
@@ -647,8 +665,10 @@ internal class MainWindowContext : WindowContext
     private void RenderStatusBar(float height, Vector2 viewportSize)
     {
         ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(0));
-        ImGui.SetNextWindowPos(new(0, viewportSize.Y - height), ImGuiCond.Always);
-        ImGui.SetNextWindowSize(new(viewportSize.X, height));
+
+        float borderSize = ImGui.GetStyle().WindowBorderSize;
+        ImGui.SetNextWindowPos(new(-borderSize, viewportSize.Y - height), ImGuiCond.Always);
+        ImGui.SetNextWindowSize(new(viewportSize.X + borderSize * 2, height));
 
         ImGuiWindowFlags flags =
             ImGuiWindowFlags.NoSavedSettings | ImGuiWindowFlags.NoDecoration | ImGuiWindowFlags.NoInputs;
@@ -701,11 +721,11 @@ internal class MainWindowContext : WindowContext
 
         ImGui.SetNextWindowPos(ImGui.GetWindowViewport().GetCenter(), ImGuiCond.Always, new(0.5f, 0.5f));
 
-        float footerSizeY = barHeight + ImGui.GetStyle().WindowPadding.Y + 20 * ScalingFactor;
+        float footerSizeY = barHeight + ImGui.GetStyle().WindowPadding.Y + 20;
 
-        Vector2 windowSize = ImGui.GetWindowViewport().Size - new Vector2(0, barHeight * 2f + footerSizeY + 10 * ScalingFactor);
-        windowSize.X = Math.Min(700 * ScalingFactor, windowSize.X);
-        windowSize.Y = Math.Min(512 * ScalingFactor, windowSize.Y);
+        Vector2 windowSize = ImGui.GetWindowViewport().Size - new Vector2(0, barHeight * 2f + footerSizeY + 10);
+        windowSize.X = Math.Min(700, windowSize.X);
+        windowSize.Y = Math.Min(512, windowSize.Y);
 
         ImGui.SetNextWindowSize(windowSize);
 
@@ -715,11 +735,11 @@ internal class MainWindowContext : WindowContext
             return;
         }
 
-        Vector2 headerSize = windowSize with { Y = Math.Min(128 * ScalingFactor, windowSize.Y) };
+        Vector2 headerSize = windowSize with { Y = Math.Min(128, windowSize.Y) };
 
         if (ImGui.BeginChild("##Header", headerSize))
         {
-            ImGui.Image(new(texId: s_welcomeImage), new(128 * ScalingFactor));
+            ImGui.Image(new(texId: s_welcomeImage), new(128));
             ImGui.SameLine();
             ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 20);
 

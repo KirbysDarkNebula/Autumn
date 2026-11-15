@@ -1,4 +1,5 @@
 using Autumn.Context;
+using Autumn.Utils;
 using Autumn.Wrappers;
 using Hexa.NET.ImGui;
 
@@ -20,6 +21,12 @@ internal class ProjectChooserContext : FileChooserWindowContext
     /// </summary>
     protected readonly Dictionary<string, bool> IsDirRomFS = new();
 
+    public ProjectChooserContext(WindowContext parent)
+        : this(parent.ContextHandler, parent.WindowManager)
+    {
+        ParentWindowContext = parent;
+    }
+
     public ProjectChooserContext(ContextHandler contextHandler, WindowManager windowManager)
         : base(contextHandler, windowManager)
     {
@@ -29,12 +36,15 @@ internal class ProjectChooserContext : FileChooserWindowContext
         {
             IsDirRomFS.Clear();
 
+            bool caseInsensitive = IsCurrentDirCaseInsensitive();
+
             foreach (var entry in DirectoryEntries)
             {
                 if (entry is not DirectoryInfo dir)
                     continue;
 
-                IsDirRomFS.Add(entry.Name, IsRomFS(entry.FullName));
+                string name = caseInsensitive ? entry.Name.ToLower() : entry.Name;
+                IsDirRomFS.Add(name, IsRomFS(entry.FullName));
             }
         };
     }
@@ -68,7 +78,9 @@ internal class ProjectChooserContext : FileChooserWindowContext
             if (IsDisabled(dir.Name))
                 flags |= ImGuiSelectableFlags.Disabled;
 
-            if (ImGui.Selectable(dir.Name, false, flags))
+            string displayName = (IsDirRomFS[dir.Name] ? IconUtils.GEAR : IconUtils.FOLDER) + "  " + dir.Name;
+
+            if (ImGui.Selectable(displayName, false, flags))
             {
                 SelectedFile = dir.Name;
                 SelectedFileChanged = true;

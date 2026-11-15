@@ -15,6 +15,12 @@ internal class SingleFileChooserContext : FileChooserWindowContext
     private const ImGuiSelectableFlags _fileSelectableFlags =
         ImGuiSelectableFlags.SpanAllColumns | ImGuiSelectableFlags.AllowDoubleClick;
 
+    public SingleFileChooserContext(WindowContext parent)
+        : this(parent.ContextHandler, parent.WindowManager)
+    {
+        ParentWindowContext = parent;
+    }
+
     public SingleFileChooserContext(ContextHandler contextHandler, WindowManager windowManager)
         : base(contextHandler, windowManager)
     {
@@ -53,7 +59,9 @@ internal class SingleFileChooserContext : FileChooserWindowContext
 
             ImGui.TableSetColumnIndex(0);
 
-            if (ImGui.Selectable(info.Name, false, _fileSelectableFlags))
+            string displayName = (info is DirectoryInfo ? IconUtils.FOLDER : IconUtils.FILE) + "  " + info.Name;
+
+            if (ImGui.Selectable(displayName, false, _fileSelectableFlags))
             {
                 if (info is DirectoryInfo dir && ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left))
                 {

@@ -56,7 +56,6 @@ internal class SettingsDialog
     public SettingsDialog(MainWindowContext window)
     {
         Reset();
-        dimensions *= window.ScalingFactor;
         _window = window;
         _useClassNames = window.ContextHandler.Settings.UseClassNames;
     }
@@ -136,7 +135,7 @@ internal class SettingsDialog
         ImGui.SetNextWindowPos(
             ImGui.GetMainViewport().GetCenter(),
             ImGuiCond.Appearing,
-            new(0.5f * _window.ScalingFactor, 0.5f)
+            new(0.5f, 0.5f)
         );
 
         if (
@@ -167,7 +166,7 @@ internal class SettingsDialog
                 ImGui.SameLine();
                 if (ImGui.Button(IconUtils.FOLDER))
                 {
-                    SingleFileChooserContext fileChooser = new(_window.ContextHandler, _window.WindowManager);
+                    SingleFileChooserContext fileChooser = new(_window);
                     fileChooser.SuccessCallback += result =>
                     {
                         if (!ThemeLoader.IsValidTomlFile(result[0])) return;
@@ -190,7 +189,7 @@ internal class SettingsDialog
 
                 if (isReadOnly) ImGui.BeginDisabled();
 
-                if (ImGui.Button(IconUtils.TRASH))
+                if (ImGui.Button(IconUtils.TRASH_CAN))
                 {
                     string? themePath = ThemeLoader.GetThemeFullPathByName(_availableThemes[_selectedTheme], _window.ContextHandler.SettingsPath);
                     if (themePath is not null)
@@ -241,7 +240,7 @@ internal class SettingsDialog
                 {
                     if (!_window!.ContextHandler.SystemSettings.RestoreNativeFileDialogs)
                     {
-                        ProjectChooserContext projectChooser = new(_window.ContextHandler, _window.WindowManager);
+                        ProjectChooserContext projectChooser = new(_window);
                         projectChooser.Title = "Autumn: Select Base ROMFS folder";
                         _window.WindowManager.Add(projectChooser);
 

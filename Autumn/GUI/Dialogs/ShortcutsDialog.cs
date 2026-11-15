@@ -4,7 +4,6 @@ using Autumn.Enums;
 using Autumn.GUI.Windows;
 using Hexa.NET.ImGui;
 using Silk.NET.Input.Extensions;
-using Silk.NET.SDL;
 
 namespace Autumn.GUI.Dialogs;
 
@@ -37,7 +36,7 @@ internal class ShortcutsDialog(MainWindowContext window)
 
         ImGui.OpenPopup("Autumn Shortcuts");
 
-        Vector2 dimensions = new(450 * window.ScalingFactor, 300);
+        Vector2 dimensions = new(450, 300);
         ImGui.SetNextWindowSize(dimensions, ImGuiCond.Always);
 
         ImGui.SetNextWindowPos(

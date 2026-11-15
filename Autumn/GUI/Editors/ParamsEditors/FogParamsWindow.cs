@@ -56,7 +56,7 @@ internal class FogParamsWindow(MainWindowContext window)
         bool autoResize = scn.Stage.StageFogs.Count < 12;
         var fg = scn.GetFogs();
         if (ImGui.BeginTable("FogSelect", 2, _stageTableFlags,
-            new Vector2(default, ImGui.GetWindowHeight() / 2.6f / window.ScalingFactor)))
+            new Vector2(default, ImGui.GetWindowHeight() / 2.6f)))
         {
             ImGui.TableSetupScrollFreeze(0, 1); // Makes top row always visible.
             ImGui.TableSetupColumn("Fog Id", ImGuiTableColumnFlags.WidthStretch, 0.2f);
@@ -108,7 +108,7 @@ internal class FogParamsWindow(MainWindowContext window)
             if (_disabled)
                 ImGui.EndDisabled();
             ImGui.SameLine(default, style.ItemSpacing.X / 2);
-            if (ImGui.Button(IconUtils.PASTE, new(w / 3 - style.ItemSpacing.X / 3, default)))
+            if (ImGui.Button(IconUtils.COPY, new(w / 3 - style.ItemSpacing.X / 3, default)))
             {
                 scn.DuplicateFog(SelectedFog);
                 SelectedFog = scn.CountFogs() - 1;

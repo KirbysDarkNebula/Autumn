@@ -32,10 +32,18 @@ internal abstract class WindowContext
 
     public bool IsFocused { get; private set; } = true;
 
+    // Prevents the user to interact with the window when true.
+    public bool Disabled { get; set; } = false;
+
     public ContextHandler ContextHandler { get; }
     public WindowManager WindowManager { get; }
 
     private float _scalingFactor = 1;
+
+    /// <summary>
+    /// Scaling factor of the window.
+    /// Must NOT be used with ImGui as it already does the scaling itself.
+    /// </summary>
     public float ScalingFactor => _scalingFactor;
 
     /// <summary>
@@ -47,6 +55,7 @@ internal abstract class WindowContext
     private static RawImage[]? s_iconCache;
 
     private bool _themeChanged = false;
+    private bool _currentFrameDisabled = false; // Prevents issues when changing Disabled property mid-frame.
 
     public WindowContext(ContextHandler contextHandler, WindowManager windowManager)
     {
@@ -116,7 +125,6 @@ internal abstract class WindowContext
 
             ImGuiImplGLFW.SetCurrentContext(ImGuiContext);
             ImGuiImplGLFW.InitForOpenGL(WindowNative, true);
-            _scalingFactor = ImGuiImplGLFW.GetContentScaleForWindow(WindowNative);
 
             ImGuiImplOpenGL3.SetCurrentContext(ImGuiContext);
             ImGuiImplOpenGL3.Init("#version 330");
@@ -179,6 +187,8 @@ internal abstract class WindowContext
                 WindowManager.GlobalTheme.UpdateImGuiTheme();
                 _themeChanged = false;
             }
+
+            _scalingFactor = ImGuiImplGLFW.GetContentScaleForWindow(WindowNative);
         };
 
         Window.FocusChanged += focused => IsFocused = focused;
@@ -236,10 +246,24 @@ internal abstract class WindowContext
         ImGuiImplOpenGL3.NewFrame();
         ImGuiImplGLFW.NewFrame();
         ImGui.NewFrame();
+
+        _currentFrameDisabled = Disabled;
+
+        if (_currentFrameDisabled) // Do not use Disable property here as a race condition may happen.
+            ImGui.BeginDisabled();
     }
 
     protected void ImGuiEndFrame()
     {
+        if (_currentFrameDisabled)
+        {
+            ImGui.EndDisabled();
+
+            var drawList = ImGui.GetForegroundDrawList();
+            var max = ImGui.GetMainViewport().Size;
+            ImGui.AddRectFilled(drawList, new(0), max, ImGui.GetColorU32(ImGuiCol.ModalWindowDimBg));
+        }
+
         ImGui.Render();
         ImGuiImplOpenGL3.RenderDrawData(ImGui.GetDrawData());
     }
@@ -340,7 +364,7 @@ internal abstract class WindowContext
         cfg->MergeMode = 1;
 
         io.Fonts.AddFontFromFileTTF(
-            Path.Join("Resources", "fa-solid-900.ttf"),
+            Path.Join("Resources", "fa-solid-900.otf"),
             18,
             cfg
         );

@@ -214,8 +214,8 @@ internal class SearchWindow
         int obj = 0;
         ImGui.SeparatorText("Search results:");
         float autoResize = -1;
-        if (ImGui.GetContentRegionAvail().Y < 220 * window.ScalingFactor) 
-            autoResize = 220 * window.ScalingFactor;
+        if (ImGui.GetContentRegionAvail().Y < 220) 
+            autoResize = 220;
         if (ImGui.BeginTable("searchTable", 3,
             ImGuiTableFlags.RowBg
             | ImGuiTableFlags.BordersOuter
@@ -264,7 +264,7 @@ internal class SearchWindow
 
                 ImGui.TableSetColumnIndex(0);
                 ImGui.PushID("SearchView" + cidx);
-                if (ImGuiWidgets.HoverButton(IconUtils.MAG_GLASS, new(ImGui.GetColumnWidth(), 30)))
+                if (ImGuiWidgets.HoverButton(IconUtils.MAGNIFYING_GLASS, new(ImGui.GetColumnWidth(), 30)))
                 {
                     window.CameraToObject(ch);
                 }
